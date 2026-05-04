@@ -1,56 +1,53 @@
 import { useEffect, useState } from "react"
+import type { Message } from "../models/message"
 import { getPublicMessages } from "../services/message.service"
 
-type Message = {
-  sender: {
-    id: number
-    username: string
-    connected: boolean
-    createdAt: string
-  }
-  content: string
-}
+export default function PublicChat() {
+    const [chat, setChat] = useState<Message[]>([])
 
-export default function PublicChat({ liveMessages }: any) {
-  const [messages, setMessages] = useState<Message[]>([])
+    useEffect(() => {
+        console.log("🔄 loading global messages")
 
-  useEffect(() => {
-    getPublicMessages(0, 30)
-      .then((data) => {
-        console.log("📦 INITIAL MESSAGES:", data)
+        getPublicMessages()
+            .then((data) => {
+                setChat(data)
+            })
+            .catch((err) => {
+                console.log("❌ ERROR LOADING MESSAGES:", err.message)
+            })
+    }, [])
 
-        if (!Array.isArray(data)) return
+   return (
+    <div>
+        <h2>Public Chat</h2>
 
-        setMessages(data.reverse())
-      })
-      .catch((err) => {
-        console.log("❌ LOAD ERROR:", err)
-      })
-  }, [])
+        <div>
+            {chat.length === 0 ? (
+                <p>Nema poruka...</p>
+            ) : (
+                chat.map((msg, index) => (
+                    <div key={index}>
+                        <div>
+                            <strong>
+                                {msg.sender?.username || "Unknown"}
+                            </strong>
+                        </div>
 
-  useEffect(() => {
-    if (!liveMessages) return
+                        <div>
+                            {msg.content}
+                        </div>
 
-    setMessages((prev) => [...prev, liveMessages])
-  }, [liveMessages])
-
-  return (
-    <div
-      style={{
-        flex: 1,
-        padding: 20,
-        overflowY: "auto",
-        display: "flex",
-        flexDirection: "column"
-      }}
-    >
-      <h2>Public Chat</h2>
-
-      {messages.map((m, i) => (
-        <div key={i}>
-          <b>{m.sender?.username}:</b> {m.content}
+                        {msg.timestamp && (
+                            <div>
+                                <small>
+                                    {new Date(msg.timestamp).toLocaleString()}
+                                </small>
+                            </div>
+                        )}
+                    </div>
+                ))
+            )}
         </div>
-      ))}
     </div>
-  )
+)
 }

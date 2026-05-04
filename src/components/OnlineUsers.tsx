@@ -1,9 +1,6 @@
 import { useEffect, useState } from "react"
 import { getOnlineUsers } from "../services/user.service"
-
-type User = {
-  username: string
-}
+import type { User } from "../models/user"
 
 export default function OnlineUsers() {
   const [users, setUsers] = useState<User[]>([])
@@ -12,8 +9,7 @@ export default function OnlineUsers() {
     console.log("🔄 loading online users")
 
     getOnlineUsers()
-      .then((data) => {
-        console.log("✅ ONLINE USERS:", data)
+      .then((data) => {        
         setUsers(data)
       })
       .catch((err) => {
