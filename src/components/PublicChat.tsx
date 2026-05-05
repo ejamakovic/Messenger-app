@@ -1,53 +1,57 @@
-import { useEffect, useState } from "react"
 import type { Message } from "../models/message"
-import { getPublicMessages } from "../services/message.service"
+import type { User } from "../models/user"
 
-export default function PublicChat() {
-    const [chat, setChat] = useState<Message[]>([])
+export default function PublicChat({
+  currentUser,
+  messages,
+}: {
+  currentUser: User
+  messages: Message[]
+}) {
+  return (
+    <div style={{ padding: 10, overflowY: "auto", flex: 1 }}>
+      
+      {messages.map((msg, index) => {
+        const isMine = msg.sender?.username === currentUser.username
 
-    useEffect(() => {
-        console.log("🔄 loading global messages")
+        return (
+          <div
+            key={index}
+            style={{
+              display: "flex",
+              justifyContent: isMine ? "flex-end" : "flex-start",
+              marginBottom: 8,
+            }}
+          >
+            
+            <div
+              style={{
+                maxWidth: "60%",
+                padding: "8px 12px",
+                borderRadius: 12,
+                backgroundColor: isMine ? "#4f46e5" : "#e5e7eb",
+                color: isMine ? "white" : "black",
+              }}
+            >
+              
+              <div style={{ fontSize: 12, opacity: 0.7 }}>
+                {msg.sender?.username}
+              </div>
 
-        getPublicMessages()
-            .then((data) => {
-                setChat(data)
-            })
-            .catch((err) => {
-                console.log("❌ ERROR LOADING MESSAGES:", err.message)
-            })
-    }, [])
+              <div>{msg.content}</div>
 
-   return (
-    <div>
-        <h2>Public Chat</h2>
+              {msg.timestamp && (
+                <div style={{ fontSize: 10, opacity: 0.6, marginTop: 4 }}>
+                  {new Date(msg.timestamp).toLocaleTimeString()}
+                </div>
+              )}
 
-        <div>
-            {chat.length === 0 ? (
-                <p>Nema poruka...</p>
-            ) : (
-                chat.map((msg, index) => (
-                    <div key={index}>
-                        <div>
-                            <strong>
-                                {msg.sender?.username || "Unknown"}
-                            </strong>
-                        </div>
+            </div>
 
-                        <div>
-                            {msg.content}
-                        </div>
+          </div>
+        )
+      })}
 
-                        {msg.timestamp && (
-                            <div>
-                                <small>
-                                    {new Date(msg.timestamp).toLocaleString()}
-                                </small>
-                            </div>
-                        )}
-                    </div>
-                ))
-            )}
-        </div>
     </div>
-)
+  )
 }
