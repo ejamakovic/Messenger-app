@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 
 import OnlineUsers from "../components/OnlineUsers"
 import MessageInput from "../components/MessageInput"
@@ -24,44 +24,86 @@ export default function PublicChatPage() {
   const [onlineUsers, setOnlineUsers] = useState<User[]>([])
   const [chat, setChat] = useState<Message[]>([])
   const [socketReady, setSocketReady] = useState(false)
-useEffect(() => {
-  const init = async () => {
-    let stored = localStorage.getItem("user")
-    let username: string
 
-    if (stored) {
-      username = JSON.parse(stored).username
-    } else {
-      username = createUsername()
-      localStorage.setItem("user", JSON.stringify({ username }))
+  const [page, setPage] = useState(0)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+
+  // INIT
+  useEffect(() => {
+    const init = async () => {
+      let stored = localStorage.getItem("user")
+      let username: string
+
+      if (stored) {
+        username = JSON.parse(stored).username
+      } else {
+        username = createUsername()
+        localStorage.setItem("user", JSON.stringify({ username }))
+      }
+
+      try {
+        const res: AuthResponse = await getMe()
+        localStorage.setItem("token", res.token)
+        setUser(res.user)
+      } catch {
+        const res: AuthResponse = await login(username)
+        localStorage.setItem("token", res.token)
+        setUser(res.user)
+      }
+
+      try {
+        const [users, messagesPage] = await Promise.all([
+          getOnlineUsers(),
+          getPublicMessages()
+        ])
+
+        setOnlineUsers(users)        
+        setChat(messagesPage.content.reverse())
+        setPage(1)
+
+        // ako ima manje od 30 → nema više
+        if (messagesPage.content.length < 30) {
+          setHasMore(false)
+        }
+
+      } catch (err) {
+        console.error("❌ INIT ERROR:", err)
+      }
     }
 
-    try {
-      const res: AuthResponse = await getMe()
-      localStorage.setItem("token", res.token)
-      setUser(res.user)
-    } catch {
-      const res: AuthResponse = await login(username)
-      localStorage.setItem("token", res.token)
-      setUser(res.user)
-    }
+    init()
+  }, [])
+
+  // LOAD MORE (OLDER MESSAGES)
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return
+
+    setLoadingMore(true)
 
     try {
-      const [users, messagesPage] = await Promise.all([
-        getOnlineUsers(),
-        getPublicMessages()
+      const nextPage = await getPublicMessages(page)
+
+      if (nextPage.content.length === 0) {
+        setHasMore(false)
+        return
+      }
+
+      setChat((prev) => [
+        ...nextPage.content.reverse(),
+        ...prev
       ])
 
-      setOnlineUsers(users)
-      setChat(messagesPage.content)
+      setPage((p) => p + 1)
+
     } catch (err) {
-      console.error("❌ INIT ERROR:", err)
+      console.error("LOAD MORE ERROR:", err)
+    } finally {
+      setLoadingMore(false)
     }
-  }
+  }, [page, loadingMore, hasMore])
 
-  init()
-}, [])
-
+  // SOCKET
   useEffect(() => {
     if (!user) return
 
@@ -72,16 +114,20 @@ useEffect(() => {
       onChatMessage: (msg) => {
         setChat((prev) => [...prev, msg])
       },
+      onUserJoin: (newUser: User) => {
+        setOnlineUsers((prev) => {
+          const exists = prev.some(u => u.username === newUser.username)
+          if (exists) return prev
 
-      onUserJoin: (u) => {
-        console.log("👤 user joined:", u)
+        return [...prev, newUser]
+        })
       }
     })
 
     setSocketReady(true)
-
   }, [user])
 
+  // CLOSE
   useEffect(() => {
     const handleClose = () => {
       if (!user) return
@@ -89,17 +135,15 @@ useEffect(() => {
     }
 
     window.addEventListener("beforeunload", handleClose)
-
-    return () => {
-      window.removeEventListener("beforeunload", handleClose)
-    }
+    return () => window.removeEventListener("beforeunload", handleClose)
   }, [user])
 
+  // SEND
   const handleSend = (text: string) => {
     if (!user || !socketReady) return
 
     sendMessage({
-      type: "chat",
+      type: "message",
       sender: user.username,
       receiver: null,
       content: text,
@@ -116,7 +160,7 @@ useEffect(() => {
           👤 {user.username}
         </div>
 
-        <OnlineUsers 
+        <OnlineUsers
           users={onlineUsers}
           currentUser={user}
         />
@@ -127,6 +171,7 @@ useEffect(() => {
         <PublicChat
           currentUser={user}
           messages={chat}
+          onLoadMore={loadMore}
         />
 
         <MessageInput onSend={handleSend} />

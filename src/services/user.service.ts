@@ -1,7 +1,6 @@
 import { api } from "./api"
 import type { User } from "../models/user"
 
-// 👤 get online users
 export const getOnlineUsers = async (): Promise<User[]> => {
   const res = await api.get("/users/connected")
   return res.data

@@ -14,7 +14,7 @@ export const connectSocket = (token: string, handlers: Handlers) => {
 
     switch (data.type) {
 
-      case "chat":
+      case "message":
         handlers.onChatMessage?.(data)
         break
 
