@@ -1,18 +1,6 @@
-import { useEffect, useState } from "react"
-import { getOnlineUsers } from "../services/user.service"
 import type { User } from "../models/user"
 
-export default function OnlineUsers({ currentUser }: { currentUser: User }) {
-  const [users, setUsers] = useState<User[]>([])
-
-  useEffect(() => {
-    getOnlineUsers()
-      .then(setUsers)
-      .catch((err) => {
-        console.log("❌ ERROR USERS:", err.message)
-      })
-  }, [])
-
+export default function OnlineUsers({ users, currentUser }: { users: User[], currentUser: User }) {
   return (
     <div style={{ width: 200, borderRight: "1px solid gray" }}>
       <h3>Online Users</h3>

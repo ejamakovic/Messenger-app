@@ -6,7 +6,7 @@ import PublicChat from "../components/PublicChat"
 
 import { connectSocket, sendMessage } from "../services/socket.service"
 import { login, getMe } from "../services/jwt.service"
-import { logoutUser } from "../services/user.service"
+import { getOnlineUsers, logoutUser } from "../services/user.service"
 import { getPublicMessages } from "../services/message.service"
 
 import type { User } from "../models/user"
@@ -21,44 +21,46 @@ const createUsername = () => {
 export default function PublicChatPage() {
 
   const [user, setUser] = useState<User | null>(null)
+  const [onlineUsers, setOnlineUsers] = useState<User[]>([])
   const [chat, setChat] = useState<Message[]>([])
   const [socketReady, setSocketReady] = useState(false)
+useEffect(() => {
+  const init = async () => {
+    let stored = localStorage.getItem("user")
+    let username: string
 
-  useEffect(() => {
-    const init = async () => {
-
-      let stored = localStorage.getItem("user")
-      let username: string
-
-      if (stored) {
-        username = JSON.parse(stored).username
-      } else {
-        username = createUsername()
-        localStorage.setItem("user", JSON.stringify({ username }))
-      }
-
-      try {
-        const res: AuthResponse = await getMe()
-
-        localStorage.setItem("token", res.token)
-        setUser(res.user)
-
-      } catch (err) {
-        const res: AuthResponse = await login(username)
-
-        localStorage.setItem("token", res.token)
-        setUser(res.user)
-      }
+    if (stored) {
+      username = JSON.parse(stored).username
+    } else {
+      username = createUsername()
+      localStorage.setItem("user", JSON.stringify({ username }))
     }
 
-    init()
-  }, [])
+    try {
+      const res: AuthResponse = await getMe()
+      localStorage.setItem("token", res.token)
+      setUser(res.user)
+    } catch {
+      const res: AuthResponse = await login(username)
+      localStorage.setItem("token", res.token)
+      setUser(res.user)
+    }
 
-  useEffect(() => {
-    getPublicMessages()
-      .then((data) => setChat(data))
-      .catch(console.error)
-  }, [])
+    try {
+      const [users, messagesPage] = await Promise.all([
+        getOnlineUsers(),
+        getPublicMessages()
+      ])
+
+      setOnlineUsers(users)
+      setChat(messagesPage.content)
+    } catch (err) {
+      console.error("❌ INIT ERROR:", err)
+    }
+  }
+
+  init()
+}, [])
 
   useEffect(() => {
     if (!user) return
@@ -114,7 +116,10 @@ export default function PublicChatPage() {
           👤 {user.username}
         </div>
 
-        <OnlineUsers currentUser={user} />
+        <OnlineUsers 
+          users={onlineUsers}
+          currentUser={user}
+        />
       </div>
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
