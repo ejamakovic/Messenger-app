@@ -1,3 +1,4 @@
+import type { Chat } from "../models/chat"
 import type { Message } from "../models/message"
 import type { Page } from "../models/Page"
 import { api } from "./api"
@@ -26,6 +27,18 @@ export const getPrivateMessages = async (
   const res = await api.get("/messages/privatePage", {
     params: { sender, receiver, page, size }
   })
+
+  return res.data
+}
+
+export const getAllPrivateChats = async (
+  username: string,
+  page = 0,
+  size = 20
+): Promise<Page<Chat>> => {
+  const res = await api.get("/messages/allPrivateChats",{
+    params: {username, page, size}
+  });
 
   return res.data
 }

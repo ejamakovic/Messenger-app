@@ -1,0 +1,55 @@
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background: #222;
+  color: #fff;
+}
+
+.menu {
+  display: flex;
+  gap: 10px;
+  position: relative;
+}
+
+.dropdown {
+  position: relative;
+}
+
+.dropdownContent {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  background: #fff;
+  color: #000;
+  padding: 10px;
+  min-width: 250px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  z-index: 100;
+}
+
+.item {
+  padding: 5px;
+  border-bottom: 1px solid #ddd;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.deleteBtn {
+  background: red;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+
+.brand {
+  cursor: pointer;
+}
+
+.messageText {
+  margin: 0;
+  font-size: 12px;
+}

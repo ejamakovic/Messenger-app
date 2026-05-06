@@ -4,10 +4,11 @@ import MessageInput from "../components/MessageInput"
 import { connectSocket, sendMessage } from "../services/socket.service"
 import { useCallback, useEffect, useState } from "react"
 import { getOnlineUsers, logoutUser } from "../services/user.service"
-import { getPrivateMessages, getPublicMessages } from "../services/message.service"
+import { getAllPrivateChats, getPrivateMessages, getPublicMessages } from "../services/message.service"
 import type { Message } from "../models/message"
 import type { User } from "../models/user"
 import { useChatScroll } from "../hook/useChatScroll"
+import TopMenu from "../components/TopMenu"
 
 export default function PrivateChatPage() {
   const { receiver } = useParams<{ receiver: string }>()
@@ -19,36 +20,40 @@ export default function PrivateChatPage() {
   const [onlineUsers, setOnlineUsers] = useState<User[]>([])
   const [chat, setChat] = useState<Message[]>([])
 
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [page, setPage] = useState(0)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)  
 
-  useEffect(()=> {
-    const init = async() => {
-      
-            try {
-              const [users, messagesPage] = await Promise.all([
-                getOnlineUsers(),
-                getPrivateMessages(user.username, receiver)
-              ])
-                            
-              setOnlineUsers(users)
-              setChat(messagesPage.content.reverse())
-              setPage(1)
-      
-              // ako ima manje od 30 → nema više
-              if (messagesPage.content.length < 30) {
-                setHasMore(false)
-              }
-      
-            } catch (err) {
-              console.error("❌ INIT ERROR:", err)
-            }      
+useEffect(() => {
+  const init = async () => {
+    try {
+      const [users, messagesPage, chats] = await Promise.all([
+        getOnlineUsers(),
+        getPrivateMessages(user.username, receiver),
+        getAllPrivateChats(user.username)
+      ]);
 
-    } 
+      setOnlineUsers(users);
+      setChat(messagesPage.content.reverse());
+      setPage(1);
 
-    init()
-}, [])
+      setConversations(chats.content || []);
+
+      if (messagesPage.content.length < 30) {
+        setHasMore(false);
+      }
+
+    } catch (err) {
+      console.error("❌ INIT ERROR:", err);
+    }
+  };
+
+  if (user?.username && receiver) {
+    init();
+  }
+}, [receiver]);
 
   const loadMore = useCallback(async () => {
       if (loadingMore || !hasMore) return
@@ -135,6 +140,10 @@ export default function PrivateChatPage() {
   return (
     <div>
       <h3>Chat with {receiver}</h3>
+
+      <TopMenu
+        conversations={conversations}        
+      />
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
       
