@@ -3,7 +3,7 @@ import PrivateChat from "../components/PrivateChat"
 import MessageInput from "../components/MessageInput"
 import { connectSocket, sendMessage } from "../services/socket.service"
 import { useCallback, useEffect, useState } from "react"
-import { getOnlineUsers } from "../services/user.service"
+import { getOnlineUsers, logoutUser } from "../services/user.service"
 import { getPrivateMessages, getPublicMessages } from "../services/message.service"
 import type { Message } from "../models/message"
 import type { User } from "../models/user"
@@ -14,8 +14,7 @@ export default function PrivateChatPage() {
   
   if (!receiver) return <div>Invalid chat</div>
 
-  const [socketReady, setSocketReady] = useState(false)
-  const token = localStorage.getItem("token")
+  const [socketReady, setSocketReady] = useState(false)  
   const user = JSON.parse(localStorage.getItem("user") || "null")
   const [onlineUsers, setOnlineUsers] = useState<User[]>([])
   const [chat, setChat] = useState<Message[]>([])
@@ -32,7 +31,7 @@ export default function PrivateChatPage() {
                 getOnlineUsers(),
                 getPrivateMessages(user.username, receiver)
               ])
-                        
+                            
               setOnlineUsers(users)
               setChat(messagesPage.content.reverse())
               setPage(1)
@@ -49,7 +48,7 @@ export default function PrivateChatPage() {
     } 
 
     init()
-  })
+}, [])
 
   const loadMore = useCallback(async () => {
       if (loadingMore || !hasMore) return
@@ -79,7 +78,6 @@ export default function PrivateChatPage() {
   
     const { containerRef, onScroll } = useChatScroll(chat, loadMore)
 
-    
       // SOCKET
       useEffect(() => {
         if (!user) return
@@ -109,6 +107,18 @@ export default function PrivateChatPage() {
         setSocketReady(true)
       }, [user])
   
+
+        // CLOSE
+        useEffect(() => {
+          const handleClose = () => {
+            if (!user) return
+            logoutUser(user)
+          }
+      
+          window.addEventListener("beforeunload", handleClose)
+          return () => window.removeEventListener("beforeunload", handleClose)
+        }, [user])
+      
 
   // SEND
   const handleSend = (text: string) => {
