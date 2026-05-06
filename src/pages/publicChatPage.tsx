@@ -12,6 +12,7 @@ import { getPublicMessages } from "../services/message.service"
 import type { User } from "../models/user"
 import type { Message } from "../models/message"
 import type { AuthResponse } from "../services/jwt.service"
+import { useChatScroll } from "../hook/useChatScroll"
 
 const createUsername = () => {
   const random = Math.random().toString(36).substring(2, 10)
@@ -27,7 +28,7 @@ export default function PublicChatPage() {
 
   const [page, setPage] = useState(0)
   const [loadingMore, setLoadingMore] = useState(false)
-  const [hasMore, setHasMore] = useState(true)
+  const [hasMore, setHasMore] = useState(true)  
 
   // INIT
   useEffect(() => {
@@ -75,7 +76,6 @@ export default function PublicChatPage() {
     init()
   }, [])
 
-  // LOAD MORE (OLDER MESSAGES)
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return
 
@@ -95,7 +95,6 @@ export default function PublicChatPage() {
       ])
 
       setPage((p) => p + 1)
-
     } catch (err) {
       console.error("LOAD MORE ERROR:", err)
     } finally {
@@ -103,6 +102,8 @@ export default function PublicChatPage() {
     }
   }, [page, loadingMore, hasMore])
 
+  const { containerRef, onScroll } = useChatScroll(chat, loadMore)
+  
   // SOCKET
   useEffect(() => {
     if (!user) return
@@ -121,7 +122,12 @@ export default function PublicChatPage() {
 
         return [...prev, newUser]
         })
-      }
+      },      
+      onUserLeave: (leftUser: User) => {
+        setOnlineUsers((prev) =>
+          prev.filter(u => u.username !== leftUser.username)
+        )
+      }  
     })
 
     setSocketReady(true)
@@ -171,7 +177,8 @@ export default function PublicChatPage() {
         <PublicChat
           currentUser={user}
           messages={chat}
-          onLoadMore={loadMore}
+          containerRef={containerRef}
+          onScroll={onScroll}
         />
 
         <MessageInput onSend={handleSend} />

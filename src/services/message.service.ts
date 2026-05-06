@@ -12,3 +12,20 @@ export const getPublicMessages = async (
 
   return res.data
 }
+
+export const getPrivateMessages = async (
+  sender: string,
+  receiver: string,
+  page = 0,
+  size = 30
+): Promise<Page<Message>> => {
+  if (!sender || !receiver) {
+    throw new Error("sender or receiver missing")
+  }
+
+  const res = await api.get("/messages/privatePage", {
+    params: { sender, receiver, page, size }
+  })
+
+  return res.data
+}

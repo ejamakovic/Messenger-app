@@ -1,5 +1,5 @@
 import type { User } from "../models/user";
-import { api } from "./api" // ili obavezni import za axios
+import { api } from "./api" 
 
 export type AuthResponse = {
   user: User

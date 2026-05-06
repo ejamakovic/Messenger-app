@@ -4,6 +4,7 @@ type Handlers = {
   onChatMessage?: (msg: any) => void
   onUserJoin?: (user: any) => void
   onChatRequest?: (req: any) => void
+  onUserLeave?: (user: any) => void
 }
 
 export const connectSocket = (token: string, handlers: Handlers) => {
@@ -24,6 +25,10 @@ export const connectSocket = (token: string, handlers: Handlers) => {
 
       case "chatRequest":
         handlers.onChatRequest?.(data)
+        break
+
+      case "user_leave":
+        handlers.onUserLeave?.(data)
         break
 
       default:

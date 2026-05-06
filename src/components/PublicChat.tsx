@@ -1,60 +1,17 @@
-import { useEffect, useLayoutEffect, useRef } from "react"
 import type { Message } from "../models/message"
 import type { User } from "../models/user"
 
 export default function PublicChat({
   currentUser,
   messages,
-  onLoadMore,
+  containerRef,
+  onScroll,
 }: {
   currentUser: User
   messages: Message[]
-  onLoadMore?: () => void
+  containerRef: React.RefObject<HTMLDivElement | null>
+  onScroll: () => void
 }) {
-  const containerRef = useRef<HTMLDivElement | null>(null)
-
-  const shouldAutoScroll = useRef(true)
-
-  // DOM anchor (NOT string ID)
-  const anchorRef = useRef<HTMLElement | null>(null)
-
-  const onScroll = () => {
-    const el = containerRef.current
-    if (!el) return
-
-    if (el.scrollTop < 50) {
-      // capture FIRST visible DOM element
-      anchorRef.current = el.children[0] as HTMLElement
-
-      onLoadMore?.()
-    }
-
-    const isNearBottom =
-      el.scrollHeight - el.scrollTop - el.clientHeight < 100
-
-    shouldAutoScroll.current = isNearBottom
-  }
-
-  useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-
-    // follow chat (bottom)
-    if (shouldAutoScroll.current) {
-      el.scrollTop = el.scrollHeight
-      return
-    }
-
-    // restore anchor DOM position
-    if (anchorRef.current) {
-      const targetTop = anchorRef.current.offsetTop
-
-      el.scrollTop = targetTop
-
-      anchorRef.current = null
-    }
-  }, [messages])
-
   return (
     <div
       ref={containerRef}
@@ -67,15 +24,12 @@ export default function PublicChat({
         flexDirection: "column",
       }}
     >
-      {messages.map((msg, index) => {
+      {messages.map((msg) => {
         const isMine = msg.sender?.username === currentUser.username
-
-        // stable key using timestamp + sender
-        const key = `${msg.sender?.username}-${msg.timestamp}-${msg.content}`
 
         return (
           <div
-            key={key}
+            key={`${msg.sender?.username}-${msg.timestamp}-${msg.content}`}
             style={{
               display: "flex",
               justifyContent: isMine ? "flex-end" : "flex-start",
