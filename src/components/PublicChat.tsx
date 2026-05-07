@@ -1,54 +1,68 @@
+import "../styles/Chat.css"
 import type { Message } from "../models/message"
 import type { User } from "../models/user"
+import { API_URL } from "../services/api"
+
+type Props = {
+  currentUser: User
+  messages: Message[]
+  containerRef: React.RefObject<HTMLDivElement | null>
+  onScroll: () => void
+}
 
 export default function PublicChat({
   currentUser,
   messages,
   containerRef,
   onScroll,
-}: {
-  currentUser: User
-  messages: Message[]
-  containerRef: React.RefObject<HTMLDivElement | null>
-  onScroll: () => void
-}) {
+}: Props) {
   return (
     <div
       ref={containerRef}
       onScroll={onScroll}
-      style={{
-        padding: 10,
-        overflowY: "auto",
-        flex: 1,
-        display: "flex",
-        flexDirection: "column",
-      }}
+      className="chatContainer"
     >
       {messages.map((msg) => {
-        const isMine = msg.sender?.username === currentUser.username
+        const isMine =
+          msg.sender?.username === currentUser.username
 
         return (
           <div
-            key={`${msg.sender?.username}-${msg.timestamp}-${msg.content}`}
-            style={{
-              display: "flex",
-              justifyContent: isMine ? "flex-end" : "flex-start",
-              marginBottom: 8,
-            }}
+            key={msg.id}
+            className={`messageRow ${
+              isMine ? "mine" : "theirs"
+            }`}
           >
             <div
-              style={{
-                maxWidth: "60%",
-                padding: "8px 12px",
-                borderRadius: 12,
-                backgroundColor: isMine ? "#4f46e5" : "#e5e7eb",
-                color: isMine ? "white" : "black",
-              }}
+              className={`bubble ${
+                isMine
+                  ? "mineBubble"
+                  : "theirsBubble"
+              }`}
             >
-              <div style={{ fontSize: 12, opacity: 0.7 }}>
+              <div className="username">
                 {msg.sender?.username}
               </div>
-              <div>{msg.content}</div>
+
+              {msg.content && (
+                <div className="messageContent">
+                  {msg.content}
+                </div>
+              )}
+
+              {msg.attachments &&
+                msg.attachments.length > 0 && (
+                  <div className="attachments">
+                    {msg.attachments.map((att) => (
+                      <img
+                        key={att.id}
+                        src={`${API_URL}${att.fileUrl}`}
+                        alt="attachment"
+                        className="image"
+                      />
+                    ))}
+                  </div>
+                )}
             </div>
           </div>
         )

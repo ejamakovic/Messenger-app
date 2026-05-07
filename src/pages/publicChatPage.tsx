@@ -4,10 +4,10 @@ import OnlineUsers from "../components/OnlineUsers"
 import MessageInput from "../components/MessageInput"
 import PublicChat from "../components/PublicChat"
 
-import { connectSocket, sendMessage } from "../services/socket.service"
+import { connectSocket } from "../services/socket.service"
 import { login, getMe } from "../services/jwt.service"
 import { getOnlineUsers, logoutUser } from "../services/user.service"
-import { getPublicMessages } from "../services/message.service"
+import { getPublicMessages, sendMessage } from "../services/message.service"
 
 import type { User } from "../models/user"
 import type { Message } from "../models/message"
@@ -24,8 +24,11 @@ export default function PublicChatPage() {
   const [user, setUser] = useState<User | null>(null)
   const [onlineUsers, setOnlineUsers] = useState<User[]>([])
   const [chat, setChat] = useState<Message[]>([])
-  const [socketReady, setSocketReady] = useState(false)
 
+  const [text, setText] = useState("")
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+
+  const [socketReady, setSocketReady] = useState(false)
   const [page, setPage] = useState(0)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)  
@@ -144,16 +147,13 @@ export default function PublicChatPage() {
     return () => window.removeEventListener("beforeunload", handleClose)
   }, [user])
 
-  // SEND
-  const handleSend = (text: string) => {
+  const handleSend = () => {
     if (!user || !socketReady) return
+    
+    sendMessage(user.username, null, text, selectedFile)
 
-    sendMessage({
-      type: "message",
-      sender: user.username,
-      receiver: null,
-      content: text,
-    })
+    setText("")
+    setSelectedFile(null)
   }
 
   if (!user) return <div>Loading...</div>
@@ -181,7 +181,13 @@ export default function PublicChatPage() {
           onScroll={onScroll}
         />
 
-        <MessageInput onSend={handleSend} />
+        <MessageInput
+          text={text}
+          file={selectedFile}
+          onTextChange={setText}
+          onFileSelect={setSelectedFile}
+          onSend={handleSend}
+        />
 
       </div>
 

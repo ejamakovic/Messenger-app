@@ -3,6 +3,37 @@ import type { Message } from "../models/message"
 import type { Page } from "../models/Page"
 import { api } from "./api"
 
+export const sendMessage = async (
+  sender: string,
+  receiver: string | null,
+  content: string | null,
+  file: File | null
+) => {
+  const formData = new FormData()
+
+  formData.append("sender", sender)
+
+  if (receiver) {
+    formData.append("receiver", receiver)
+  }
+
+  if (content) {
+    formData.append("content", content)
+  }
+
+  if (file) {
+    formData.append("file", file)
+  }
+
+  const res = await api.post("/messages/send", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  })
+
+  return res.data
+}
+
 export const getPublicMessages = async (
   page = 0,
   size = 30
