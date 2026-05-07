@@ -3,9 +3,9 @@ import type { User } from "./user"
 
 export type Message = {
   id: number
-  content?: string
+  content: string
   sender: User
   receiver?: User | null
-  timestamp?: string
+  timestamp: string
   attachments?: Attachment[]
-}
+} 
