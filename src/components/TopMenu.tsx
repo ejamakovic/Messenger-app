@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "../styles/TopMenu.css";
+import styles from "../styles/TopMenu.module.css";
 
 const dummyConversations = [
   {

@@ -1,64 +1,44 @@
+import styles from "../styles/MessageInput.module.css"
+
 export default function MessageInput({
   text,
   file,
   onTextChange,
   onFileSelect,
-  onSend,
-}: {
-  text: string
-  file: File | null
-  onTextChange: (text: string) => void
-  onFileSelect: (file: File | null) => void
-  onSend: () => void
-}) {
-  return (
-    <div
-      style={{
-        padding: 10,
-        borderTop: "1px solid gray",
-        display: "flex",
-        gap: 8,
-        alignItems: "center",
-      }}
-    >
-      {/* FILE INPUT */}
-      <input
-        type="file"
-        onChange={(e) => {
-          const f = e.target.files?.[0] || null
-          onFileSelect(f)
-        }}
-      />
+  onSend
+}: any) {
+  return (<div className={styles.container}>
 
-      {/* TEXT INPUT */}
-      <input
-        value={text}
-        onChange={(e) => onTextChange(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            if (!text.trim() && !file) return
-            onSend()
-          }
-        }}
-        placeholder="Type message..."
-        style={{ flex: 1 }}
-      />
+  <input
+    type="file"
+    onChange={(e) =>
+      onFileSelect(e.target.files?.[0] || null)
+    }
+  />
 
-      {/* PREVIEW FILE (optional ali korisno) */}
-      {file && (
-        <span style={{ fontSize: 12 }}>
-          📎 {file.name}
-        </span>
-      )}
+  <input
+    className={styles.input}
+    value={text}
+    onChange={(e) => onTextChange(e.target.value)}
+    onKeyDown={(e) => {
+      if (e.key === "Enter") onSend()
+    }}
+    placeholder="Type message..."
+  />
 
-      <button
-        onClick={() => {
-          if (!text.trim() && !file) return
-          onSend()
-        }}
-      >
-        Send
-      </button>
-    </div>
+  {file && (
+    <span className={styles.file}>
+      📎 {file.name}
+    </span>
+  )}
+
+  <button
+    className={styles.button}
+    onClick={onSend}
+  >
+    Send
+  </button>
+
+</div>
   )
 }

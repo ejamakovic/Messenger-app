@@ -115,7 +115,7 @@ useEffect(() => {
         })
     
         setSocketReady(true)
-      }, [user?.username])
+      }, [receiver])
   
 
         useEffect(() => {

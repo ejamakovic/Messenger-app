@@ -1,7 +1,8 @@
-import "../styles/Chat.css"
+import styles from "../styles/PublicChat.module.css"
 import type { Message } from "../models/message"
 import type { User } from "../models/user"
 import { API_URL } from "../services/api"
+import { useState } from "react"
 
 type Props = {
   currentUser: User
@@ -16,57 +17,81 @@ export default function PublicChat({
   containerRef,
   onScroll,
 }: Props) {
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
   return (
     <div
       ref={containerRef}
       onScroll={onScroll}
-      className="chatContainer"
+      className={styles.chatContainer}
     >
       {messages.map((msg) => {
+
         const isMine =
-          msg.sender?.username === currentUser.username
+          msg.sender?.username ===
+          currentUser.username
 
         return (
           <div
             key={msg.id}
-            className={`messageRow ${
-              isMine ? "mine" : "theirs"
-            }`}
+            className={
+              isMine
+                ? styles.messageRowMine
+                : styles.messageRowTheirs
+            }
           >
+
             <div
-              className={`bubble ${
+              className={
                 isMine
-                  ? "mineBubble"
-                  : "theirsBubble"
-              }`}
+                  ? styles.bubbleMine
+                  : styles.bubbleTheirs
+              }
             >
-              <div className="username">
+
+              <div className={styles.username}>
                 {msg.sender?.username}
               </div>
 
               {msg.content && (
-                <div className="messageContent">
+                <div className={styles.content}>
                   {msg.content}
                 </div>
               )}
 
               {msg.attachments &&
                 msg.attachments.length > 0 && (
-                  <div className="attachments">
+                  <div className={styles.attachments}>
                     {msg.attachments.map((att) => (
                       <img
                         key={att.id}
                         src={`${API_URL}${att.fileUrl}`}
                         alt="attachment"
-                        className="image"
+                        className={styles.image}
+                        onClick={() =>
+                          setPreviewImage(`${API_URL}${att.fileUrl}`)
+                        }
                       />
                     ))}
                   </div>
                 )}
+
             </div>
+
           </div>
         )
       })}
+      {previewImage && (
+  <div
+    className={styles.imageOverlay}
+    onClick={() => setPreviewImage(null)}
+  >
+    <img
+      src={previewImage}
+      className={styles.previewImage}
+      alt="preview"
+    />
+  </div>
+)}
     </div>
   )
 }

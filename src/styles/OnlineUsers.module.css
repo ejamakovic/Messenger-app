@@ -1,0 +1,26 @@
+.container {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  gap: 6px;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.user {
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.15s;
+}
+
+.user:hover {
+  background: #f2f4f8;
+}

@@ -1,17 +1,22 @@
 let socket: WebSocket | null = null
 
-type Handlers = {
-  onChatMessage?: (msg: any) => void
-  onUserJoin?: (user: any) => void
-  onChatRequest?: (req: any) => void
-  onUserLeave?: (user: any) => void
+type SocketEvent =
+  | "message"
+  | "user_join"
+  | "user_leave"
+  | "chat_request"
+
+type Listener = (data: any) => void
+
+const listeners: Record<SocketEvent, Set<Listener>> = {
+  message: new Set(),
+  user_join: new Set(),
+  user_leave: new Set(),
+  chat_request: new Set(),
 }
 
-export const connectSocket = (
-  token: string,
-  handlers: Handlers
-) => {
-  
+export const connectSocket = (token: string) => {
+
   if (
     socket &&
     (
@@ -19,7 +24,6 @@ export const connectSocket = (
       socket.readyState === WebSocket.CONNECTING
     )
   ) {
-    console.log("SOCKET ALREADY CONNECTED")
     return socket
   }
 
@@ -42,29 +46,21 @@ export const connectSocket = (
 
   socket.onmessage = (event) => {
 
-    const data = JSON.parse(event.data)
-
-    switch (data.type) {
-
-      case "message":
-        handlers.onChatMessage?.(data)
-        break
-
-      case "user":
-        handlers.onUserJoin?.(data.user)
-        break
-
-      case "chatRequest":
-        handlers.onChatRequest?.(data)
-        break
-
-      case "user_leave":
-        handlers.onUserLeave?.(data)
-        break
-
-      default:
-        console.log("Unknown event:", data)
+    const data = JSON.parse(event.data) as {
+      type: SocketEvent
+      [key: string]: any
     }
+
+    const eventListeners = listeners[data.type]
+
+    if (!eventListeners) {
+      console.log("UNKNOWN EVENT:", data.type)
+      return
+    }
+
+    eventListeners.forEach((listener) => {
+      listener(data)
+    })
   }
 
   return socket
@@ -78,17 +74,29 @@ export const disconnectSocket = () => {
   }
 }
 
-export const sendMessage = (msg: any) => {
+export const subscribe = (
+  event: SocketEvent,
+  callback: Listener
+) => {
 
-  if (!socket) {
-    console.log("NO SOCKET")
-    return
-  }
+  listeners[event].add(callback)
+}
+
+export const unsubscribe = (
+  event: SocketEvent,
+  callback: Listener
+) => {
+
+  listeners[event].delete(callback)
+}
+
+export const emit = (data: any) => {
+
+  if (!socket) return
 
   if (socket.readyState !== WebSocket.OPEN) {
-    console.log("SOCKET NOT OPEN")
     return
   }
 
-  socket.send(JSON.stringify(msg))
+  socket.send(JSON.stringify(data))
 }
