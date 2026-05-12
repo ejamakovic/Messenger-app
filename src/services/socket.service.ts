@@ -7,10 +7,41 @@ type Handlers = {
   onUserLeave?: (user: any) => void
 }
 
-export const connectSocket = (token: string, handlers: Handlers) => {
-  socket = new WebSocket(`ws://localhost:8080/ws/chat?token=${token}`)
+export const connectSocket = (
+  token: string,
+  handlers: Handlers
+) => {
+  
+  if (
+    socket &&
+    (
+      socket.readyState === WebSocket.OPEN ||
+      socket.readyState === WebSocket.CONNECTING
+    )
+  ) {
+    console.log("SOCKET ALREADY CONNECTED")
+    return socket
+  }
+
+  socket = new WebSocket(
+    `ws://localhost:8080/ws/chat?token=${token}`
+  )
+
+  socket.onopen = () => {
+    console.log("✅ SOCKET CONNECTED")
+  }
+
+  socket.onclose = () => {
+    console.log("❌ SOCKET CLOSED")
+    socket = null
+  }
+
+  socket.onerror = (err) => {
+    console.error("SOCKET ERROR", err)
+  }
 
   socket.onmessage = (event) => {
+
     const data = JSON.parse(event.data)
 
     switch (data.type) {
@@ -35,9 +66,29 @@ export const connectSocket = (token: string, handlers: Handlers) => {
         console.log("Unknown event:", data)
     }
   }
+
+  return socket
+}
+
+export const disconnectSocket = () => {
+
+  if (socket) {
+    socket.close()
+    socket = null
+  }
 }
 
 export const sendMessage = (msg: any) => {
-  if (!socket || socket.readyState !== WebSocket.OPEN) return
+
+  if (!socket) {
+    console.log("NO SOCKET")
+    return
+  }
+
+  if (socket.readyState !== WebSocket.OPEN) {
+    console.log("SOCKET NOT OPEN")
+    return
+  }
+
   socket.send(JSON.stringify(msg))
 }

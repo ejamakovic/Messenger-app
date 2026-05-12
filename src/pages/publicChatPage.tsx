@@ -106,43 +106,56 @@ export default function PublicChatPage() {
   }, [page, loadingMore, hasMore])
 
   const { containerRef, onScroll } = useChatScroll(chat, loadMore)
-  
-  // SOCKET
   useEffect(() => {
-    if (!user) return
 
-    const token = localStorage.getItem("token")
-    if (!token) return
+  if (!user) return
 
-    connectSocket(token, {
-      onChatMessage: (msg) => {
+  const token = localStorage.getItem("token")
+
+  if (!token) return
+
+  connectSocket(token, {
+    onChatMessage: (msg) => {
+      if (msg.receiver?.username == null) {
         setChat((prev) => [...prev, msg])
-      },
-      onUserJoin: (newUser: User) => {
-        setOnlineUsers((prev) => {
-          const exists = prev.some(u => u.username === newUser.username)
-          if (exists) return prev
+      }
+    },
+
+    onUserJoin: (newUser: User) => {
+
+      setOnlineUsers((prev) => {
+
+        const exists = prev.some(
+          u => u.username === newUser.username
+        )
+
+        if (exists) return prev
 
         return [...prev, newUser]
-        })
-      },      
-      onUserLeave: (leftUser: User) => {
-        setOnlineUsers((prev) =>
-          prev.filter(u => u.username !== leftUser.username)
+      })
+    },
+
+    onUserLeave: (leftUser: User) => {
+
+      setOnlineUsers((prev) =>
+        prev.filter(
+          u => u.username !== leftUser.username
         )
-      }  
-    })
+      )
+    }
+  })
 
-    setSocketReady(true)
-  }, [user])
+  setSocketReady(true)
 
-  // CLOSE
+}, [user?.username])
+  
   useEffect(() => {
     const handleClose = () => {
       if (!user) return
       logoutUser(user)
     }
 
+    
     window.addEventListener("beforeunload", handleClose)
     return () => window.removeEventListener("beforeunload", handleClose)
   }, [user])

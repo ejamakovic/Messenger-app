@@ -19,6 +19,7 @@ const dummyNotifications = [
   { id: 1, text: "Novi follower" },
   { id: 2, text: "Poruka stigla" },
 ];
+
 const TopMenu = ({ conversations = [], notifications = [] }) => {
   const navigate = useNavigate();
 
