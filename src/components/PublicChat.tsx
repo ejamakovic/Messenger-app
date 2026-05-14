@@ -38,12 +38,13 @@ export default function PublicChat({
         return (
 
           <div
-            key={msg.id}
-            className={
-              isMine
-                ? styles.messageRowMine
-                : styles.messageRowTheirs
-            }
+          key={msg.id}
+          data-id={msg.id}
+          className={
+            isMine
+            ? styles.messageRowMine
+            : styles.messageRowTheirs
+          }
           >
 
             <div

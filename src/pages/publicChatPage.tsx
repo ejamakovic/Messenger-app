@@ -49,7 +49,7 @@ export default function PublicChatPage() {
     useState<File | null>(null)
 
   const [page, setPage] =
-    useState(0)
+    useState(1)
 
   const [loadingMore, setLoadingMore] =
     useState(false)
@@ -57,49 +57,6 @@ export default function PublicChatPage() {
   const [hasMore, setHasMore] =
     useState(true)
   
-
-
-  // INITIAL DATA
-
-  useEffect(() => {
-
-    const init = async () => {
-
-      try {
-
-        const [
-          users,
-          messagesPage
-        ] = await Promise.all([
-          getOnlineUsers(),
-          getPublicMessages()
-        ])
-
-        setOnlineUsers(users)
-
-        setChat(
-          messagesPage.content.reverse()
-        )
-
-        setPage(1)
-
-        if (messagesPage.content.length < 30) {
-          console.log("ima manje")
-          setHasMore(false)
-        }
-
-      } catch (err) {
-
-        console.error(
-          "INIT ERROR:",
-          err
-        )
-      }
-    }
-
-    init()
-
-  }, [])
 
 const loadMore = useCallback(async () => {
   console.log("📄 loadMore pozvan, page =", page)
@@ -133,7 +90,46 @@ const loadMore = useCallback(async () => {
   }
 }, [page, loadingMore, hasMore])
 
-  const { containerRef, onScroll } = useChatScroll(chat, loadMore)
+const { containerRef, onScroll } = useChatScroll(chat, loadMore)
+
+  // INITIAL DATA
+
+  useEffect(() => {
+
+    const init = async () => {
+
+      try {
+
+        const [
+          users,
+          messagesPage
+        ] = await Promise.all([
+          getOnlineUsers(),
+          getPublicMessages()
+        ])
+
+        setOnlineUsers(users)
+
+        setChat(
+          messagesPage.content.reverse()
+        )        
+
+        if (messagesPage.content.length < 30) {          
+          setHasMore(false)
+        }
+
+      } catch (err) {
+
+        console.error(
+          "INIT ERROR:",
+          err
+        )
+      }
+    }
+
+    init()
+
+  }, [])
   
   // SOCKET EVENTS
 
