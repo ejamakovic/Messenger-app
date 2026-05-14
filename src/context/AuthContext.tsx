@@ -25,65 +25,52 @@ export const AuthProvider = ({
   const [loading, setLoading] = useState(true)
   useEffect(() => {
 
-    const init = async () => {
+const init = async () => {
 
-      try {
+  try {
 
-        let storedUser = localStorage.getItem("user")
+    let storedUser = localStorage.getItem("user")
 
-        let username: string
+    let username: string
 
-        if (storedUser) {
-          username = JSON.parse(storedUser).username
-        } else {
+    if (storedUser) {
+      username = JSON.parse(storedUser).username
+    } else {
 
-          username = createUsername()
+      username = createUsername()
 
-          localStorage.setItem(
-            "user",
-            JSON.stringify({ username })
-          )
-        }
-
-        let storedToken = localStorage.getItem("token")
-        let res: AuthResponse
-
-        if (storedToken) {
-
-          try {
-
-            res = await getMe()
-
-          } catch {
-
-            res = await login(username)
-
-            localStorage.setItem(
-              "token",
-              res.token
-            )
-          }
-
-        } else {
-
-          res = await login(username)
-
-          localStorage.setItem(
-            "token",
-            res.token
-          )
-        }
-
-        setUser(res.user)
-        setToken(res.token)
-
-      } catch (err) {
-
-        console.error("AUTH INIT ERROR", err)
-      }
-
-      setLoading(false)
+      localStorage.setItem(
+        "user",
+        JSON.stringify({ username })
+      )
     }
+
+    let storedToken = localStorage.getItem("token")
+
+    if (!storedToken) {
+
+      const loginRes = await login(username)
+
+      storedToken = loginRes.token
+
+      localStorage.setItem("token", storedToken)
+    }
+
+    setToken(storedToken)
+
+    const meRes = await getMe()
+
+    setUser(meRes.user)
+
+  } catch (err) {
+
+    console.error("AUTH INIT ERROR", err)
+
+  } finally {
+
+    setLoading(false)
+  }
+}
 
     init()
 

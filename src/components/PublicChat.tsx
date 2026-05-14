@@ -17,13 +17,18 @@ export default function PublicChat({
   containerRef,
   onScroll,
 }: Props) {
-  const [previewImage, setPreviewImage] = useState<string | null>(null)
+
+  const [previewImage, setPreviewImage] =
+    useState<string | null>(null)
+
   return (
+
     <div
       ref={containerRef}
       onScroll={onScroll}
       className={styles.chatContainer}
     >
+
       {messages.map((msg) => {
 
         const isMine =
@@ -31,6 +36,7 @@ export default function PublicChat({
           currentUser.username
 
         return (
+
           <div
             key={msg.id}
             className={
@@ -60,19 +66,58 @@ export default function PublicChat({
 
               {msg.attachments &&
                 msg.attachments.length > 0 && (
+
                   <div className={styles.attachments}>
-                    {msg.attachments.map((att) => (
-                      <img
-                        key={att.id}
-                        src={`${API_URL}${att.fileUrl}`}
-                        alt="attachment"
-                        className={styles.image}
-                        onClick={() =>
-                          setPreviewImage(`${API_URL}${att.fileUrl}`)
-                        }
-                      />
-                    ))}
+
+                    {msg.attachments.map((att) => {
+
+                      const isImage =
+                        att.fileType?.startsWith("image/")
+
+                      const isVideo =
+                        att.fileType?.startsWith("video/")
+
+                      return (
+
+                        <div key={att.id}>
+
+                          {isImage && (
+
+                            <img
+                              src={`${API_URL}${att.fileUrl}`}
+                              alt="attachment"
+                              className={styles.image}
+                              onClick={() =>
+                                setPreviewImage(
+                                  `${API_URL}${att.fileUrl}`
+                                )
+                              }
+                            />
+
+                          )}
+
+                          {isVideo && (
+
+                            <video
+                              controls
+                              className={styles.video}
+                            >
+
+                              <source
+                                src={`${API_URL}${att.fileUrl}`}
+                                type={att.fileType}
+                              />
+
+                            </video>
+
+                          )}
+
+                        </div>
+                      )
+                    })}
+
                   </div>
+
                 )}
 
             </div>
@@ -80,18 +125,26 @@ export default function PublicChat({
           </div>
         )
       })}
+
       {previewImage && (
-  <div
-    className={styles.imageOverlay}
-    onClick={() => setPreviewImage(null)}
-  >
-    <img
-      src={previewImage}
-      className={styles.previewImage}
-      alt="preview"
-    />
-  </div>
-)}
+
+        <div
+          className={styles.imageOverlay}
+          onClick={() =>
+            setPreviewImage(null)
+          }
+        >
+
+          <img
+            src={previewImage}
+            className={styles.previewImage}
+            alt="preview"
+          />
+
+        </div>
+
+      )}
+
     </div>
   )
 }

@@ -57,48 +57,7 @@ export default function PublicChatPage() {
   const [hasMore, setHasMore] =
     useState(true)
   
-  const loadMore = useCallback(async () => {
 
-    if (loadingMore || !hasMore) return
-
-    setLoadingMore(true)
-
-    try {
-
-      const nextPage =
-        await getPublicMessages(page)
-
-      if (nextPage.content.length === 0) {
-
-        setHasMore(false)
-        return
-      }
-
-      setChat((prev) => [
-        ...nextPage.content.reverse(),
-        ...prev
-      ])
-
-      setPage((p) => p + 1)
-
-    } catch (err) {
-
-      console.error(
-        "LOAD MORE ERROR:",
-        err
-      )
-
-    } finally {
-
-      setLoadingMore(false)
-    }
-
-  }, [page, loadingMore, hasMore])
-
-  const {
-    containerRef,
-    onScroll
-  } = useChatScroll(chat, loadMore)
 
   // INITIAL DATA
 
@@ -124,9 +83,8 @@ export default function PublicChatPage() {
 
         setPage(1)
 
-        if (
-          messagesPage.content.length < 30
-        ) {
+        if (messagesPage.content.length < 30) {
+          console.log("ima manje")
           setHasMore(false)
         }
 
@@ -143,6 +101,40 @@ export default function PublicChatPage() {
 
   }, [])
 
+const loadMore = useCallback(async () => {
+  console.log("📄 loadMore pozvan, page =", page)
+
+  if (loadingMore || !hasMore) return
+
+  setLoadingMore(true)
+
+  try {
+    const nextPage = await getPublicMessages(page)
+
+    console.log("📦 dobio page:", page)
+
+    if (nextPage.content.length === 0) {
+      console.log("🛑 nema više poruka")
+      setHasMore(false)
+      return
+    }
+
+    setChat((prev) => [
+      ...nextPage.content.reverse(),
+      ...prev
+    ])
+
+    setPage((p) => p + 1)
+
+  } catch (err) {
+    console.error("LOAD MORE ERROR:", err)
+  } finally {
+    setLoadingMore(false)
+  }
+}, [page, loadingMore, hasMore])
+
+  const { containerRef, onScroll } = useChatScroll(chat, loadMore)
+  
   // SOCKET EVENTS
 
   useEffect(() => {
@@ -305,6 +297,12 @@ export default function PublicChatPage() {
 
   <div className={styles.chatSection}>
 
+    {loadingMore && (
+    <div className={styles.loadingMore}>
+      Loading more...
+    </div>
+    )}
+
     <div className={styles.chatMessages}>
       <PublicChat
         currentUser={user}
@@ -312,7 +310,7 @@ export default function PublicChatPage() {
         containerRef={containerRef}
         onScroll={onScroll}
       />
-    </div>
+  </div>
 
     <div className={styles.chatInput}>
       <MessageInput

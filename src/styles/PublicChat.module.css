@@ -97,3 +97,8 @@
   border-radius: 10px;
   box-shadow: 0 10px 40px rgba(0,0,0,0.5);
 }
+
+.video {
+  max-width: 250px;
+  border-radius: 12px;
+}
