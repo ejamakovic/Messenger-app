@@ -1,4 +1,4 @@
-import styles from "../styles/MessageInput.module.css"
+import styles from "../MessageInput/MessageInput.module.css"
 
 export default function MessageInput({
   text,

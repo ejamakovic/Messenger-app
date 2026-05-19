@@ -1,14 +1,14 @@
 import { useParams } from "react-router-dom"
-import MessageInput from "../components/MessageInput"
+import MessageInput from "../components/MessageInput/MessageInput"
 import { connectSocket } from "../services/socket.service"
 import { useCallback, useEffect, useState } from "react"
 import { getOnlineUsers, logoutUser } from "../services/user.service"
-import { getAllPrivateChats, getPrivateMessages, getPublicMessages, sendMessage } from "../services/message.service"
+import { sendMessage } from "../services/message.service"
 import type { Message } from "../models/message"
 import type { User } from "../models/user"
 import { useChatScroll } from "../hook/useChatScroll"
 import TopMenu from "../components/TopMenu"
-import PublicChat from "../components/PublicChat"
+import PublicChat from "../components/Chat/PublicChat"
 
 export default function PrivateChatPage() {
   const { receiver } = useParams<{ receiver: string }>()

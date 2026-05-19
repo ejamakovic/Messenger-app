@@ -1,96 +1,68 @@
-import styles from "../styles/PublicChatPage.module.css"
+import styles from "../styles/PublicChatPage.module.css";
 
 import {
   useEffect,
   useState,
-  useCallback
-} from "react"
+  useCallback,
+} from "react";
 
-import OnlineUsers from "../components/OnlineUsers"
-import MessageInput from "../components/MessageInput"
-import PublicChat from "../components/PublicChat"
-
+import OnlineUsers from "../components/OnlineUsers";
+import MessageInput from "../components/MessageInput/MessageInput";
+import PublicChat from "../components/Chat/PublicChat";
 
 import {
   subscribe,
-  unsubscribe
-} from "../services/socket.service"
+  unsubscribe,
+} from "../services/socket.service";
 
 import {
   getOnlineUsers,
-  logoutUser
-} from "../services/user.service"
+  logoutUser,
+} from "../services/user.service";
 
 import {
-  getPublicMessages,
-  sendMessage
-} from "../services/message.service"
+  getConversationMessages,
+  sendMessage,
+} from "../services/message.service";
 
-import type { User } from "../models/user"
-import type { Message } from "../models/message"
+import {
+  getPublicConversation,
+} from "../services/conversation.service";
 
-import { useChatScroll } from "../hook/useChatScroll"
-import { useAuth } from "../context/AuthContext"
+import type { User } from "../models/user";
+import type { Message } from "../models/message";
+import type { Conversation } from "../models/conversation";
+
+import { useChatScroll } from "../hook/useChatScroll";
+import { useAuth } from "../context/AuthContext";
 
 export default function PublicChatPage() {
 
-  const { user, loading } = useAuth()
+  const { user, loading } = useAuth();
+
+  const [conversation, setConversation] =
+    useState<Conversation | null>(null);
 
   const [onlineUsers, setOnlineUsers] =
-    useState<User[]>([])
+    useState<User[]>([]);
 
   const [chat, setChat] =
-    useState<Message[]>([])
+    useState<Message[]>([]);
 
   const [text, setText] =
-    useState("")
+    useState("");
 
   const [selectedFile, setSelectedFile] =
-    useState<File | null>(null)
+    useState<File | null>(null);
 
   const [page, setPage] =
-    useState(1)
+    useState(0);
 
   const [loadingMore, setLoadingMore] =
-    useState(false)
+    useState(false);
 
   const [hasMore, setHasMore] =
-    useState(true)
-  
-
-const loadMore = useCallback(async () => {
-  console.log("📄 loadMore pozvan, page =", page)
-
-  if (loadingMore || !hasMore) return
-
-  setLoadingMore(true)
-
-  try {
-    const nextPage = await getPublicMessages(page)
-
-    console.log("📦 dobio page:", page)
-
-    if (nextPage.content.length === 0) {
-      console.log("🛑 nema više poruka")
-      setHasMore(false)
-      return
-    }
-
-    setChat((prev) => [
-      ...nextPage.content.reverse(),
-      ...prev
-    ])
-
-    setPage((p) => p + 1)
-
-  } catch (err) {
-    console.error("LOAD MORE ERROR:", err)
-  } finally {
-    setLoadingMore(false)
-  }
-}, [page, loadingMore, hasMore])
-
-const { containerRef, onScroll } = useChatScroll(chat, loadMore)
+    useState(true);
 
   // INITIAL DATA
 
@@ -100,22 +72,43 @@ const { containerRef, onScroll } = useChatScroll(chat, loadMore)
 
       try {
 
+        const publicConversation =
+          await getPublicConversation();
+
+        if (!publicConversation?.id) {
+          throw new Error(
+            "Public conversation not found"
+          );
+        }
+
+        console.log(publicConversation)
+
+        setConversation(
+          publicConversation
+        );
+
         const [
           users,
-          messagesPage
+          messagesPage,
         ] = await Promise.all([
           getOnlineUsers(),
-          getPublicMessages()
-        ])
 
-        setOnlineUsers(users)
+          getConversationMessages(
+            publicConversation.id,
+            page
+          ),
+        ]);
+
+        setOnlineUsers(users);
 
         setChat(
           messagesPage.content.reverse()
-        )        
+        );    
 
-        if (messagesPage.content.length < 30) {          
-          setHasMore(false)
+        if (
+          messagesPage.content.length < 30
+        ) {
+          setHasMore(false);
         }
 
       } catch (err) {
@@ -123,36 +116,103 @@ const { containerRef, onScroll } = useChatScroll(chat, loadMore)
         console.error(
           "INIT ERROR:",
           err
-        )
+        );
       }
+    };
+
+    init();
+
+  }, []);
+
+  // LOAD MORE
+
+  const loadMore = useCallback(async () => {
+
+    if (
+      loadingMore ||
+      !hasMore ||
+      !conversation
+    ) {
+      return;
     }
 
-    init()
+    setLoadingMore(true);
 
-  }, [])
-  
+    try {
+
+      const nextPage =
+        await getConversationMessages(
+          conversation.id,
+          page
+        );
+
+      if (
+        nextPage.content.length === 0
+      ) {
+        setHasMore(false);
+        return;
+      }
+
+      setChat((prev) => [
+        ...nextPage.content.reverse(),
+        ...prev,
+      ]);
+
+      setPage((prev) => prev + 1);
+
+    } catch (err) {
+
+      console.error(
+        "LOAD MORE ERROR:",
+        err
+      );
+
+    } finally {
+
+      setLoadingMore(false);
+    }
+
+  }, [
+    page,
+    loadingMore,
+    hasMore,
+    conversation,
+  ]);
+
+  const {
+    containerRef,
+    onScroll,
+  } = useChatScroll(chat, loadMore);
+
   // SOCKET EVENTS
 
   useEffect(() => {
 
-    if (!user) return
+    if (!user || !conversation) {
+      return;
+    }
 
- const handleMessage = (msg: Message) => {
-  
-  if (msg.receiver?.username == null) {
-    setChat((prev) => {      
-      return [...prev, msg]
-    })
-  } else {
-    console.log("❌ FILTERED OUT (not public)")
-  }
-}
+    const handleMessage = (
+      msg: Message
+    ) => {
+
+      if (
+        msg.conversationId ===
+        conversation.id
+      ) {
+
+        setChat((prev) => [
+          ...prev,
+          msg,
+        ]);
+      }
+    };
 
     const handleUserJoin = (
       data: any
     ) => {
 
-      const newUser = data.user
+      const newUser = data.user;
 
       setOnlineUsers((prev) => {
 
@@ -160,19 +220,21 @@ const { containerRef, onScroll } = useChatScroll(chat, loadMore)
           (u) =>
             u.username ===
             newUser.username
-        )
+        );
 
-        if (exists) return prev
+        if (exists) {
+          return prev;
+        }
 
-        return [...prev, newUser]
-      })
-    }
+        return [...prev, newUser];
+      });
+    };
 
     const handleUserLeave = (
       data: any
     ) => {
 
-      const leftUser = data.user
+      const leftUser = data.user;
 
       setOnlineUsers((prev) =>
         prev.filter(
@@ -180,43 +242,43 @@ const { containerRef, onScroll } = useChatScroll(chat, loadMore)
             u.username !==
             leftUser.username
         )
-      )
-    }
+      );
+    };
 
     subscribe(
       "message",
       handleMessage
-    )
+    );
 
     subscribe(
       "user_join",
       handleUserJoin
-    )
+    );
 
     subscribe(
       "user_leave",
       handleUserLeave
-    )
+    );
 
     return () => {
 
       unsubscribe(
         "message",
         handleMessage
-      )
+      );
 
       unsubscribe(
         "user_join",
         handleUserJoin
-      )
+      );
 
       unsubscribe(
         "user_leave",
         handleUserLeave
-      )
-    }
+      );
+    };
 
-  }, [user])
+  }, [user, conversation]);
 
   // TAB CLOSE
 
@@ -224,102 +286,101 @@ const { containerRef, onScroll } = useChatScroll(chat, loadMore)
 
     const handleClose = () => {
 
-      if (!user) return
+      if (!user) {
+        return;
+      }
 
-      logoutUser(user)
-    }
+      logoutUser(user);
+    };
 
     window.addEventListener(
       "beforeunload",
       handleClose
-    )
+    );
 
     return () => {
 
       window.removeEventListener(
         "beforeunload",
         handleClose
-      )
-    }
+      );
+    };
 
-  }, [user])
+  }, [user]);
 
   // SEND MESSAGE
+const handleSend = async () => {
+  if (!conversation || !user) return;
 
-  const handleSend = async () => {
+  try {
+    await sendMessage(
+      user.id,
+      conversation.id,
+      text,           
+      selectedFile
+    );
 
-    if (!user) return
+    setText("");
+    setSelectedFile(null);
 
-    try {
-
-      await sendMessage(
-        user.username,
-        null,
-        text,
-        selectedFile
-      )
-
-      setText("")
-      setSelectedFile(null)
-
-    } catch (err) {
-
-      console.error(
-        "SEND MESSAGE ERROR:",
-        err
-      )
-    }
+  } catch (err) {
+    console.error("SEND MESSAGE ERROR:", err);
   }
+};
 
   if (loading || !user) {
-    return <div>Loading...</div>
+    return <div>Loading...</div>;
   }
 
- return (
-<div className={styles.container}>
+  return (
+    <div className={styles.container}>
 
-  <div className={styles.sidebar}>
+      <div className={styles.sidebar}>
 
-    <div className={styles.sidebarHeader}>
-      👤 {user.username}
+        <div className={styles.sidebarHeader}>
+          👤 {user.username}
+        </div>
+
+        <OnlineUsers
+          users={onlineUsers}
+          currentUser={user}
+        />
+
+      </div>
+
+      <div className={styles.chatSection}>
+
+        {loadingMore && (
+          <div className={styles.loadingMore}>
+            Loading more...
+          </div>
+        )}
+
+        <div className={styles.chatMessages}>
+
+          <PublicChat
+            currentUser={user}
+            messages={chat}
+            containerRef={containerRef}
+            onScroll={onScroll}
+          />
+
+        </div>
+
+        <div className={styles.chatInput}>
+
+          <MessageInput
+            text={text}
+            file={selectedFile}
+            onTextChange={setText}
+            onFileSelect={setSelectedFile}
+            onSend={handleSend}
+          />
+
+        </div>
+
+      </div>
+
     </div>
-
-    <OnlineUsers
-      users={onlineUsers}
-      currentUser={user}
-    />
-
-  </div>
-
-  <div className={styles.chatSection}>
-
-    {loadingMore && (
-    <div className={styles.loadingMore}>
-      Loading more...
-    </div>
-    )}
-
-    <div className={styles.chatMessages}>
-      <PublicChat
-        currentUser={user}
-        messages={chat}
-        containerRef={containerRef}
-        onScroll={onScroll}
-      />
-  </div>
-
-    <div className={styles.chatInput}>
-      <MessageInput
-        text={text}
-        file={selectedFile}
-        onTextChange={setText}
-        onFileSelect={setSelectedFile}
-        onSend={handleSend}
-      />
-    </div>
-
-  </div>
-
-</div>
-)
+  );
 }

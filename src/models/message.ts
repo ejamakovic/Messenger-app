@@ -5,7 +5,7 @@ export type Message = {
   id: number
   content: string
   sender: User
-  receiver?: User | null
+  conversationId: number
   timestamp: string
   attachments?: Attachment[]
 } 

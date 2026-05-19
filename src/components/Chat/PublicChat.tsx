@@ -1,7 +1,7 @@
-import styles from "../styles/PublicChat.module.css"
-import type { Message } from "../models/message"
-import type { User } from "../models/user"
-import { API_URL } from "../services/api"
+import styles from "../Chat/PublicChat.module.css"
+import type { Message } from "../../models/message"
+import type { User } from "../../models/user"
+import { API_URL } from "../../services/api"
 import { useState } from "react"
 
 type Props = {

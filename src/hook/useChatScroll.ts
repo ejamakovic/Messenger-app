@@ -46,8 +46,7 @@ export function useChatScroll(messages: any[], onLoadMore?: () => void) {
       })
       return
     }
-
-    // WAIT FOR IMAGES BEFORE RESTORE (🔥 BITNO)
+  
     const runAfterImagesLoad = () => {
       const imgs = Array.from(el.querySelectorAll("img"))
 
