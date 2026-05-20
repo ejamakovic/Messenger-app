@@ -6,20 +6,18 @@ export const sendMessage = async (
   senderId: number,
   conversationId: number,
   content: string,
-  file?: File | null
+  files: File[] 
 ) => {
   const formData = new FormData();
 
   formData.append("senderId", String(senderId))
   formData.append("conversationId", String(conversationId))
 
-  if (content) {
-    formData.append("content", content)
-  }
+  formData.append("content", content || "")
 
-  if (file) {
-    formData.append("file", file)
-  }
+  files.forEach((file) => {
+    formData.append("files", file);
+  });
 
   const res = await api.post("/messages/send", formData)
 

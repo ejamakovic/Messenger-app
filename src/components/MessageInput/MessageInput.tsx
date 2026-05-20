@@ -2,7 +2,8 @@ import styles from "../MessageInput/MessageInput.module.css"
 
 export default function MessageInput({
   text,
-  file,
+  files,
+  canSend,
   onTextChange,
   onFileSelect,
   onSend
@@ -11,47 +12,51 @@ export default function MessageInput({
 
 <input
   type="file"
+  multiple
   accept="image/*,video/*"
-  onChange={(e) => {
+onChange={(e) => {
 
-    const selected =
-      e.target.files?.[0]
+  const files =
+    Array.from(e.target.files || []);
 
-    if (!selected) return
+  if (files.length === 0) return;
+
+  const maxSize =
+    50 * 1024 * 1024; // 50MB
+
+  for (const file of files) {
 
     const isImage =
-      selected.type.startsWith("image/")
+      file.type.startsWith("image/");
 
     const isVideo =
-      selected.type.startsWith("video/")
+      file.type.startsWith("video/");
 
     if (!isImage && !isVideo) {
 
       alert(
-        "Only images and videos allowed"
-      )
+        `${file.name} is not supported`
+      );
 
-      e.target.value = ""
+      e.target.value = "";
 
-      return
+      return;
     }
 
-    const maxSize =
-      50 * 1024 * 1024 // 50MB
-
-    if (selected.size > maxSize) {
+    if (file.size > maxSize) {
 
       alert(
-        "File too large (max 50MB)"
-      )
+        `${file.name} is too large`
+      );
 
-      e.target.value = ""
+      e.target.value = "";
 
-      return
+      return;
     }
+  }
 
-    onFileSelect(selected)
-  }}
+  onFileSelect(files);
+}}
 />
 
   <input
@@ -59,20 +64,35 @@ export default function MessageInput({
     value={text}
     onChange={(e) => onTextChange(e.target.value)}
     onKeyDown={(e) => {
-      if (e.key === "Enter") onSend()
+      if (
+        e.key === "Enter" &&
+        canSend
+      ) {
+
+      e.preventDefault();
+
+      onSend();
+      }
     }}
     placeholder="Type message..."
   />
-
-  {file && (
-    <span className={styles.file}>
-      📎 {file.name}
-    </span>
-  )}
+  {files?.length > 0 && (
+  <div className={styles.fileList}>
+    {files.map((file: File) => (
+      <span
+        key={file.name}
+        className={styles.file}
+      >
+        📎 {file.name}
+      </span>
+    ))}
+  </div>
+)}
 
   <button
     className={styles.button}
     onClick={onSend}
+    disabled={!canSend}
   >
     Send
   </button>

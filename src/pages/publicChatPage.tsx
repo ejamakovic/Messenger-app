@@ -52,8 +52,7 @@ export default function PublicChatPage() {
   const [text, setText] =
     useState("");
 
-  const [selectedFile, setSelectedFile] =
-    useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   const [page, setPage] =
     useState(0);
@@ -63,6 +62,10 @@ export default function PublicChatPage() {
 
   const [hasMore, setHasMore] =
     useState(true);
+
+  const canSend =
+    text.trim().length > 0 ||
+    selectedFiles.length > 0;
 
   // INITIAL DATA
 
@@ -80,9 +83,7 @@ export default function PublicChatPage() {
             "Public conversation not found"
           );
         }
-
-        console.log(publicConversation)
-
+        
         setConversation(
           publicConversation
         );
@@ -310,6 +311,11 @@ export default function PublicChatPage() {
 
   // SEND MESSAGE
 const handleSend = async () => {
+  
+  if (!canSend) {
+    return;
+  }
+
   if (!conversation || !user) return;
 
   try {
@@ -317,11 +323,11 @@ const handleSend = async () => {
       user.id,
       conversation.id,
       text,           
-      selectedFile
+      selectedFiles
     );
 
     setText("");
-    setSelectedFile(null);
+    setSelectedFiles([]);
 
   } catch (err) {
     console.error("SEND MESSAGE ERROR:", err);
@@ -371,9 +377,10 @@ const handleSend = async () => {
 
           <MessageInput
             text={text}
-            file={selectedFile}
+            file={selectedFiles}
+            canSend={canSend}
             onTextChange={setText}
-            onFileSelect={setSelectedFile}
+            onFileSelect={setSelectedFiles}
             onSend={handleSend}
           />
 
