@@ -1,7 +1,6 @@
 export type Conversation = {
   id: number;
-  type: "PUBLIC" | "PRIVATE" | "GROUP";
-
+  type: "GLOBAL" | "PRIVATE" | "GROUP";
   name?: string;
   imageUrl?: string;
 };

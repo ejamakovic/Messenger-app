@@ -77,7 +77,7 @@ export default function PublicChatPage() {
 
         const publicConversation =
           await getPublicConversation();
-
+ 
         if (!publicConversation?.id) {
           throw new Error(
             "Public conversation not found"
@@ -122,6 +122,7 @@ export default function PublicChatPage() {
     };
 
     init();
+    setPage((prev) => prev + 1);
 
   }, []);
 
@@ -137,7 +138,7 @@ export default function PublicChatPage() {
       return;
     }
 
-    setLoadingMore(true);
+    setLoadingMore(true);  
 
     try {
 

@@ -1,3 +1,4 @@
+import type { Conversation } from "../models/conversation";
 import type { Message } from "../models/message"
 import type { Page } from "../models/Page"
 import { api } from "./api"
@@ -30,6 +31,18 @@ export const getConversationMessages = async (
   size = 30
 ): Promise<Page<Message>> => {
   const res = await api.get(`/messages/conversation/${conversationId}`, {
+    params: { page, size },
+  });
+
+  return res.data
+}
+
+export const getUserConversations = async (
+  userId: number,
+  page = 0,
+  size = 30
+) : Promise<Page<Conversation>> => {
+  const res = await api.get(`/conversations/user/${userId}`, {
     params: { page, size },
   });
 
