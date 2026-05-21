@@ -1,6 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import type { Conversation } from "../../models/conversation";
 
+type Props = {
+    currentUser: User;
+    activeConversation: 
+}
 
 export default function UserChats({
     conversations
@@ -16,3 +20,4 @@ export default function UserChats({
     )
     
 }
+

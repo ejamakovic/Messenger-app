@@ -1,101 +1,64 @@
-import { useLayoutEffect, useRef } from "react"
+import { useLayoutEffect, useRef } from "react";
 
 export function useChatScroll(messages: any[], onLoadMore?: () => void) {
-  const containerRef = useRef<HTMLDivElement | null>(null)
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
-  const shouldAutoScroll = useRef(true)
-  const isLoadingOlder = useRef(false)
-  const initialized = useRef(false)
-
-  const anchorId = useRef<string | null>(null)
+  // Tracks if we should snap to bottom when a new message arrives
+  const shouldAutoScroll = useRef(true);
+  // Tracks if the current update is from loading history (upward)
+  const isLoadingOlder = useRef(false);
+  // Prevents the initial jump from happening more than once
+  const isInitialized = useRef(false);
+  // Stores the position of the top-most message before prepending new ones
+  const anchorOffset = useRef<number>(0);
 
   const onScroll = () => {
-    const el = containerRef.current
-    if (!el) return
+    const el = containerRef.current;
+    if (!el) return;
 
-    const distanceFromBottom =
-      el.scrollHeight - el.scrollTop - el.clientHeight
+    // Check if user is near the bottom within 150px
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    shouldAutoScroll.current = distanceFromBottom < 150;
 
-    shouldAutoScroll.current = distanceFromBottom < 120
+    // Trigger Load More when reaching the top within 100px
+    if (el.scrollTop < 100 && onLoadMore && !isLoadingOlder.current) {
+      isLoadingOlder.current = true;
+      
+      anchorOffset.current = el.scrollHeight - el.scrollTop;
 
-    if (el.scrollTop < 60 && onLoadMore && !isLoadingOlder.current) {
-      isLoadingOlder.current = true
-
-      const firstVisible = Array.from(el.children).find((child: any) => {
-        const rect = child.getBoundingClientRect()
-        return rect.bottom > 0
-      }) as HTMLElement | undefined
-
-      anchorId.current = firstVisible?.dataset?.id ?? null
-
-      onLoadMore()
+      onLoadMore();
     }
-  }
+  };
 
   useLayoutEffect(() => {
-    const el = containerRef.current
-    if (!el) return
+    const el = containerRef.current;
+    if (!el || messages.length === 0) return;
 
     // INITIAL SCROLL
-    if (!initialized.current && messages.length > 0) {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          el.scrollTop = el.scrollHeight
-          initialized.current = true
-        })
-      })
-      return
-    }
-  
-    const runAfterImagesLoad = () => {
-      const imgs = Array.from(el.querySelectorAll("img"))
-
-      const pending = imgs.filter((img) => !img.complete)
-
-      if (pending.length === 0) {
-        restoreScroll()
-      } else {
-        Promise.all(
-          pending.map(
-            (img) =>
-              new Promise((res) => {
-                img.onload = img.onerror = () => res(true)
-              })
-          )
-        ).then(restoreScroll)
-      }
+    if (!isInitialized.current) {
+      el.scrollTop = el.scrollHeight;
+      isInitialized.current = true;
+      return;
     }
 
-    const restoreScroll = () => {
-      if (!isLoadingOlder.current) return
-
-      const anchorEl = el.querySelector(
-        `[data-id="${anchorId.current}"]`
-      ) as HTMLElement | null
-
-      if (anchorEl) {
-        const top = anchorEl.getBoundingClientRect().top
-        el.scrollTop += top
-      }
-
-      isLoadingOlder.current = false
-      anchorId.current = null
-    }
-
+    // RESTORE SCROLL
     if (isLoadingOlder.current) {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(runAfterImagesLoad)
-      })
-      return
+      // Logic: New scroll top = New total height - Old distance from bottom
+      el.scrollTop = el.scrollHeight - anchorOffset.current;
+      isLoadingOlder.current = false;
+      return;
     }
 
-    if (shouldAutoScroll.current) {
+    // AUTO-SCROLL
+    if (shouldAutoScroll.current) {      
       requestAnimationFrame(() => {
-        el.scrollTop = el.scrollHeight
-      })
+        el.scrollTo({
+          top: el.scrollHeight,
+          behavior: "smooth" 
+        });
+      });
     }
+  }, [messages]);
 
-  }, [messages])
-
-  return { containerRef, onScroll }
+  return { containerRef, onScroll };
 }

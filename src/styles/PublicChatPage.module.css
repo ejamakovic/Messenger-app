@@ -1,48 +1,37 @@
 .container {
   display: flex;
   height: 100vh;
-  background: #f6f7f9;
-  font-family: Arial, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
 }
 
 .sidebar {
-  width: 260px;
+  width: 300px; /* Increased for breathing room */
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #ddd;
-  background: #ffffff;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border-color);
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.02);
 }
 
 .sidebarHeader {
-  padding: 14px;
-  font-weight: bold;
-  border-bottom: 1px solid #eee;
-  background: #fafafa;
+  padding: 20px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .chatSection {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 0;
+  position: relative;
 }
 
 .chatMessages {
   flex: 1;
-  min-height: 0;
-  padding: 10px;
-
+  overflow: hidden; /* Contains the scrollable chat */
   display: flex;
-}
-
-.chatInput {
-  border-top: 1px solid #ddd;
-  background: #fff;
-}
-
-.loadingMore {
-  text-align: center;
-  padding: 10px;
-  color: #999;
-  font-size: 14px;
+  flex-direction: column;
 }
