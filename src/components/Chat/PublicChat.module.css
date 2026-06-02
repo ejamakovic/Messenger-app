@@ -7,6 +7,59 @@
   gap: 12px;
 }
 
+.messageRowMine {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.messageRowTheirs {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.bubbleMine {
+  background-color: var(--primary, #007bff); 
+  color: white;
+  padding: 10px 14px;
+  border-radius: 16px 16px 2px 16px; 
+  max-width: 70%;
+  word-break: break-word;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.bubbleTheirs {
+  background-color: #f1f0f0;
+  color: #333;
+  padding: 10px 14px;
+  border-radius: 16px 16px 16px 2px; 
+  max-width: 70%;
+  word-break: break-word;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.username {
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  opacity: 0.7;
+}
+
+.bubbleMine .username {
+  text-align: right;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.bubbleTheirs .username {
+  color: #666;
+}
+
+.content {
+  font-size: 15px;
+  line-height: 1.4;
+}
+
 .mediaWrapper {
   margin-top: 8px;
   border-radius: 12px;
@@ -50,13 +103,25 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(12px); /* PRO: Glass effect */
+  backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   z-index: 10000;
   animation: fadeIn 0.2s ease-out;
+}
+
+/* NEW: Layout management for header controls */
+.overlayHeader {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  right: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10001;
 }
 
 .previewContent {
@@ -76,15 +141,12 @@
 }
 
 .closeButton {
-  position: absolute;
-  top: 20px;
-  right: 20px;
   background: rgba(255, 255, 255, 0.1);
   color: white;
   border: none;
   font-size: 32px;
   line-height: 1;
-  padding: 8px 14px;
+  padding: 4px 14px 8px 14px; /* Adjusted padding to center standard cross character */
   border-radius: 50%;
   cursor: pointer;
   transition: 0.2s;
@@ -109,8 +171,8 @@
 }
 
 .downloadButton:hover {
-  background: var(--primary); /* Uses your theme blue */
-  border-color: var(--primary);
+  background: var(--primary, #007bff);
+  border-color: var(--primary, #007bff);
   transform: translateY(-1px);
 }
 

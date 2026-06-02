@@ -1,99 +1,102 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "../styles/TopMenu.module.css";
+import type { Conversation } from "../models/conversation";
 
-const dummyConversations = [
-  {
-    id: 1,
-    user: "Amar",
-    lastMessage: { text: "E gdje si?" },
-  },
-  {
-    id: 2,
-    user: "Lejla",
-    lastMessage: { text: "Vidimo se kasnije" },
-  },
-];
 
-const dummyNotifications = [
+interface NotificationItem {
+  id: number;
+  text: string;
+}
+
+const dummyNotifications: NotificationItem[] = [
   { id: 1, text: "Novi follower" },
   { id: 2, text: "Poruka stigla" },
 ];
 
-const TopMenu = ({ conversations = [], notifications = [] }) => {
+interface TopMenuProps {
+  conversations?: Conversation[];
+  notifications?: NotificationItem[];
+}
+
+export default function TopMenu({ conversations = [], notifications = [] }: TopMenuProps) {
   const navigate = useNavigate();
 
   const [showChats, setShowChats] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  const [notifList, setNotifList] = useState(
+  // Using dummy data directly for notifications as requested
+  const [notifList, setNotifList] = useState<NotificationItem[]>(
     notifications.length ? notifications : dummyNotifications
   );
 
-  const deleteNotification = (id: any) => {
+  const deleteNotification = (e: React.MouseEvent, id: number) => {
+    e.stopPropagation(); // Prevents the dropdown wrapper from closing on click
     setNotifList((prev) => prev.filter((n) => n.id !== id));
   };
 
   return (
-    <div className="navbar">
-      <h3 className="brand" onClick={() => navigate("/")}>
+    <div className={styles.navbar}>
+      <h3 className={styles.brand} onClick={() => navigate("/")}>
         MyApp
       </h3>
 
-      <div className="menu">
-        <button onClick={() => navigate("/")}>
+      <div className={styles.menu}>
+        <button className={styles.menuBtn} onClick={() => navigate("/")}>
           Javni Chat
         </button>
 
-        <div className="dropdown">
-          <button onClick={() => setShowChats(!showChats)}>
+        {/* CHATS DROPDOWN */}
+        <div className={styles.dropdown}>
+          <button 
+            className={styles.menuBtn} 
+            onClick={() => { setShowChats(!showChats); setShowNotifications(false); }}
+          >
             Razgovori
           </button>
 
           {showChats && (
-            <div className="dropdownContent">
-              {conversations.length === 0 && <p>Nema razgovora</p>}
+            <div className={styles.dropdownContent}>
+              {conversations.length === 0 && <p className={styles.emptyText}>Nema razgovora</p>}
 
-              {conversations.map((msg) => {
-                const otherUser =
-                  msg.sender.username === JSON.parse(localStorage.getItem("user") || "{}").username
-                    ? msg.receiver?.username
-                    : msg.sender?.username;
-
-                return (
-                  <div
-                    key={msg.id}
-                    className="item"
-                    onClick={() => navigate(`/chat/${otherUser}`)}
-                  >
-                    <strong>{otherUser}</strong>
-                    <p className="messageText">
-                      {msg.content}
-                    </p>
-                  </div>
-                );
-              })}
+              {conversations.map((conv) => (
+                <div
+                  key={conv.id}
+                  className={styles.item}
+                  onClick={() => {
+                    setShowChats(false);
+                    navigate(`/chat/${conv.id}`);
+                  }}
+                >
+                  <strong>Razgovor #{conv.id}</strong>
+                  <p className={styles.messageText}>Last message...</p>
+                </div>
+              ))}
             </div>
           )}
         </div>
 
-        <div className="dropdown">
-          <button onClick={() => setShowNotifications(!showNotifications)}>
+        {/* NOTIFICATIONS DROPDOWN */}
+        <div className={styles.dropdown}>
+          <button 
+            className={styles.menuBtn} 
+            onClick={() => { setShowNotifications(!showNotifications); setShowChats(false); }}
+          >
             Notifikacije ({notifList.length})
           </button>
 
           {showNotifications && (
-            <div className="dropdownContent">
-              {notifList.length === 0 && <p>Nema notifikacija</p>}
+            <div className={styles.dropdownContent}>
+              {notifList.length === 0 && <p className={styles.emptyText}>Nema notifikacija</p>}
 
               {notifList.map((notif) => (
-                <div key={notif.id} className="item">
+                <div key={notif.id} className={styles.itemNotif}>
                   <span>{notif.text}</span>
                   <button
-                    className="deleteBtn"
-                    onClick={() => deleteNotification(notif.id)}
+                    className={styles.deleteBtn}
+                    onClick={(e) => deleteNotification(e, notif.id)}
                   >
-                    X
+                    &times;
                   </button>
                 </div>
               ))}
@@ -103,6 +106,4 @@ const TopMenu = ({ conversations = [], notifications = [] }) => {
       </div>
     </div>
   );
-};
-
-export default TopMenu;
+}

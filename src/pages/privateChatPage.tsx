@@ -1,170 +1,177 @@
-import { useParams } from "react-router-dom"
+import { useParams, useNavigate } from "react-router-dom"
 import MessageInput from "../components/MessageInput/MessageInput"
-import { connectSocket } from "../services/socket.service"
 import { useCallback, useEffect, useState } from "react"
-import { getOnlineUsers, logoutUser } from "../services/user.service"
-import { sendMessage } from "../services/message.service"
+import { getConversationMessages, sendMessage } from "../services/message.service"
+import { logoutUser } from "../services/user.service"
+import { subscribe, unsubscribe } from "../services/socket.service"
 import type { Message } from "../models/message"
-import type { User } from "../models/user"
 import { useChatScroll } from "../hook/useChatScroll"
 import TopMenu from "../components/TopMenu"
 import PublicChat from "../components/Chat/PublicChat"
+import { getUserConversations } from "../services/conversation.service"
 
 export default function PrivateChatPage() {
-  const { receiver } = useParams<{ receiver: string }>()
+  // FIX: Read parameter context as conversationId matching your TopMenu design
+  const { conversationId } = useParams<{ conversationId: string }>()
+  const navigate = useNavigate()
   
-  if (!receiver) return <div>Invalid chat</div>
+  if (!conversationId) return <div>Invalid chat room selection</div>
 
-  const [socketReady, setSocketReady] = useState(false)  
-  const user = JSON.parse(localStorage.getItem("user") || "null")
-  const [onlineUsers, setOnlineUsers] = useState<User[]>([])
+  const user = JSON.parse(sessionStorage.getItem("user") || "null")  
   const [chat, setChat] = useState<Message[]>([])
-
   const [text, setText] = useState("")
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  
   const [conversations, setConversations] = useState<any[]>([])
   const [notifications, setNotifications] = useState<any[]>([])
+
   const [page, setPage] = useState(0)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)  
 
-useEffect(() => {
-  const init = async () => {
-    try {
-      const [users, messagesPage, chats] = await Promise.all([
-        getOnlineUsers(),
-        getPrivateMessages(user.username, receiver),
-        getAllPrivateChats(user.username)
-      ])
+  const numericConvId = Number(conversationId)
 
-      setOnlineUsers(users)
-      setChat(messagesPage.content.reverse())
-      setPage(1)
+  // INITIALIZATION LOGIC
+  useEffect(() => {
+    const init = async () => {
+      try {
+        // Reset local layout variables before pulling next data collection
+        setChat([])
+        setPage(0)
+        setHasMore(true)
 
-      setConversations(chats.content || [])
-      console.log("CHAT:\n" + conversations)
+        const [messagesPage, chats] = await Promise.all([        
+          getConversationMessages(numericConvId, 0),
+          getUserConversations(user.id)
+        ])
+        
+        setChat(messagesPage.content.reverse())
+        setPage(1)
+        setConversations(chats.content || [])
 
-      if (messagesPage.content.length < 30) {
-        setHasMore(false)
+        if (messagesPage.content.length < 30) {
+          setHasMore(false)
+        }
+      } catch (err) {
+        console.error("❌ INIT ERROR:", err)
       }
+    }
 
+    if (user?.username && conversationId) {
+      init()
+    }
+  }, [conversationId]) // Triggers reload if dropdown switches channels
+
+  // PAGINATION LOGIC
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || !user?.username) return
+  
+    setLoadingMore(true)
+  
+    try {
+      const nextPage = await getConversationMessages(numericConvId, page)
+  
+      if (!nextPage.content || nextPage.content.length === 0) {
+        setHasMore(false)
+        return
+      }
+  
+      setChat((prev) => [
+        ...nextPage.content.reverse(),
+        ...prev
+      ])
+  
+      setPage((p) => p + 1)
     } catch (err) {
-      console.error("❌ INIT ERROR:", err)
+      console.error("LOAD MORE ERROR:", err)
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [page, loadingMore, hasMore, conversationId, user?.username])
+  
+  const { containerRef, onScroll } = useChatScroll(chat, loadMore)
+
+  // SOCKET MANAGEMENT
+  useEffect(() => {
+    if (!user || !conversationId) return
+
+    const handleMessage = (msg: Message) => {
+      // FIX: Matches directly against numeric conv validation properties
+      if (msg.conversationId === numericConvId) {
+        setChat((prev) => [...prev, msg])
+      }
+    }
+
+    subscribe("message", handleMessage)
+
+    return () => {
+      unsubscribe("message", handleMessage)
+    }
+  }, [user, conversationId])
+  
+  // WINDOW CLOSURE HANDLERS
+  useEffect(() => {
+    const handleClose = () => {
+      if (!user) return
+      logoutUser(user)
+    }
+
+    window.addEventListener("beforeunload", handleClose)
+    return () => window.removeEventListener("beforeunload", handleClose)
+  }, [user])
+      
+  // SEND MESSAGE LOGIC
+  const handleSend = async () => {
+    if (!user || (!text.trim() && !selectedFile)) return
+    
+    try {
+      // FIX: Passing matching parameter sets: user.id and target conversationId array
+      const filesArray = selectedFile ? [selectedFile] : []
+      await sendMessage(user.id, numericConvId, text, filesArray)
+      
+      setText("")
+      setSelectedFile(null)
+    } catch (err) {
+      console.error("❌ MESSAGE DISPATCH ERROR:", err)
     }
   }
 
-  if (user?.username && receiver) {
-    init()
-  }
-}, [receiver])
-
-  const loadMore = useCallback(async () => {
-      if (loadingMore || !hasMore) return
-  
-      setLoadingMore(true)
-  
-      try {
-        const nextPage = await getPublicMessages(page)
-  
-        if (nextPage.content.length === 0) {
-          setHasMore(false)
-          return
-        }
-  
-        setChat((prev) => [
-          ...nextPage.content.reverse(),
-          ...prev
-        ])
-  
-        setPage((p) => p + 1)
-      } catch (err) {
-        console.error("LOAD MORE ERROR:", err)
-      } finally {
-        setLoadingMore(false)
-      }
-    }, [page, loadingMore, hasMore])
-  
-    const { containerRef, onScroll } = useChatScroll(chat, loadMore)
-
-      // SOCKET
-      useEffect(() => {
-        if (!user) return
-    
-        const token = localStorage.getItem("token")
-        if (!token) return
-    
-        connectSocket(token, {
-          onChatMessage: (msg) => {
-            if((msg.sender?.username === receiver && msg.receiver?.username === user.username) || (msg.sender?.username === user.username && msg.receiver?.username === receiver)){
-              setChat((prev) => [...prev, msg])
-            }
-          },
-          onUserJoin: (newUser: User) => {
-            setOnlineUsers((prev) => {
-              const exists = prev.some(u => u.username === newUser.username)
-              if (exists) return prev
-    
-            return [...prev, newUser]
-            })
-          },      
-          onUserLeave: (leftUser: User) => {
-            setOnlineUsers((prev) =>
-              prev.filter(u => u.username !== leftUser.username)
-            )
-          }  
-        })
-    
-        setSocketReady(true)
-      }, [receiver])
-  
-
-        useEffect(() => {
-          const handleClose = () => {
-            if (!user) return
-            logoutUser(user)
-          }
-      
-          window.addEventListener("beforeunload", handleClose)
-          return () => window.removeEventListener("beforeunload", handleClose)
-        }, [user])
-      
-
-  const handleSend = () => {
-    if (!user || !socketReady) return
-    
-    sendMessage(user.username, receiver, text, selectedFile)
-
-    setText("")
-    setSelectedFile(null)
-  }
-
   return (
-    <div>
-      <h3>Chat with {receiver}</h3>
-
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
       <TopMenu
         conversations={conversations}
         notifications={notifications}        
       />
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", padding: "20px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+          <button 
+            onClick={() => navigate("/")} 
+            style={{ padding: "5px 10px", cursor: "pointer" }}
+          >
+            ← Back to Public Room
+          </button>
+          <h3>Private Chat Room #{conversationId}</h3>
+        </div>
       
-        <PublicChat
-          currentUser={user}        
-          messages={chat}
-          containerRef={containerRef}
-          onScroll={onScroll}
-        />
+        <div style={{ flex: 1, overflowY: "auto", margin: "15px 0" }}>
+          <PublicChat
+            currentUser={user}        
+            messages={chat}
+            containerRef={containerRef}
+            onScroll={onScroll}
+          />
+        </div>
 
         <MessageInput
           text={text}
-          file={selectedFile}
+          file={selectedFile ? [selectedFile] : []} // Normalizing to array for subcomponents
+          canSend={text.trim().length > 0 || !!selectedFile}
           onTextChange={setText}
-          onFileSelect={setSelectedFile}
+          onFileSelect={(files: any[]) => setSelectedFile(files?.[0] || null)}
           onSend={handleSend}
         />
-      
-            </div>
+      </div>
     </div>
   )
 }

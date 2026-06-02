@@ -25,8 +25,8 @@ export const AuthProvider = ({
   useEffect(() => {
     const initAuth = async () => {
       try {        
-        const storedUser = localStorage.getItem("user");
-        const storedToken = localStorage.getItem("token");
+        const storedUser = sessionStorage.getItem("user");
+        const storedToken = sessionStorage.getItem("token");
 
         if (storedUser && storedToken) {
           setUser(JSON.parse(storedUser));
@@ -41,13 +41,13 @@ export const AuthProvider = ({
         setUser(res.user);
         setToken(res.token);
 
-        localStorage.setItem("user", JSON.stringify(res.user));
-        localStorage.setItem("token", res.token);
+        sessionStorage.setItem("user", JSON.stringify(res.user));
+        sessionStorage.setItem("token", res.token);
       } catch (error) {
         console.error("AUTH ERROR:", error);
 
-        localStorage.removeItem("user");
-        localStorage.removeItem("token");
+        sessionStorage.removeItem("user");
+        sessionStorage.removeItem("token");
       } finally {
         setLoading(false);
       }

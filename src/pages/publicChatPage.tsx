@@ -1,13 +1,15 @@
 import styles from "../styles/PublicChatPage.module.css";
 import { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom"; // Added for navigation between chats
 import OnlineUsers from "../components/OnlineUsers";
 import MessageInput from "../components/MessageInput/MessageInput";
 import PublicChat from "../components/Chat/PublicChat";
+import TopMenu from "../components/TopMenu"; // Imported TopMenu component
 
 import { subscribe, unsubscribe } from "../services/socket.service";
 import { getOnlineUsers, logoutUser } from "../services/user.service";
-import { getConversationMessages, sendMessage } from "../services/message.service";
-import { getPublicConversation } from "../services/conversation.service";
+import { getConversationMessages, sendMessage } from "../services/message.service"; // Imported getAllPrivateChats
+import { getPublicConversation, getUserConversations } from "../services/conversation.service";
 
 import type { User } from "../models/user";
 import type { Message } from "../models/message";
@@ -18,9 +20,18 @@ import { useAuth } from "../context/AuthContext";
 
 export default function PublicChatPage() {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
 
+  // Navigation & UI Lists
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [onlineUsers, setOnlineUsers] = useState<User[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  
+  // Sidebar Tab Toggle state ("chats" display or "online" display)
+  const [sidebarTab, setSidebarTab] = useState<"chats" | "online">("chats");
+
+  // Chat History & Input Processing
   const [chat, setChat] = useState<Message[]>([]);
   const [text, setText] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -31,11 +42,12 @@ export default function PublicChatPage() {
   const canSend = text.trim().length > 0 || selectedFiles.length > 0;
 
   /**
-   * This can be called anytime to "Reset/Refresh" the chat
+   * Fetches initial room setups, online user arrays, and existing user DM records
    * */
   const fetchInitialData = useCallback(async () => {
+    if (!user?.username) return;
+    
     try {
-      // 1. Get the conversation ID first
       const publicConversation = await getPublicConversation();
 
       if (!publicConversation?.id) {
@@ -44,32 +56,32 @@ export default function PublicChatPage() {
 
       setConversation(publicConversation);
 
-      // 2. Fetch users and first page of messages (page 0)
-      const [users, messagesPage] = await Promise.all([
+      // Fetch Online Users, Public Messages, and Active Private DM Conversations concurrently
+      const [users, messagesPage, privateChats] = await Promise.all([
         getOnlineUsers(),
         getConversationMessages(publicConversation.id, 0),
+        getUserConversations(user.id)
       ]);
 
       setOnlineUsers(users);
-      
-      // 3. Reset chat state with fresh messages
+      setConversations(privateChats.content || []);
       setChat(messagesPage.content.reverse());
 
-      // 4. Update pagination states
       setHasMore(messagesPage.content.length >= 30);
-      setPage(1); // Set next page to 1 for the loadMore function
+      setPage(1); 
       
     } catch (err) {
       console.error("INITIALIZATION ERROR:", err);
     }
-  }, []);
+  }, [user?.username]);
 
-  // Call initialization on mount
   useEffect(() => {
-    fetchInitialData();
-  }, [fetchInitialData]);
+    if (user) {
+      fetchInitialData();
+    }
+  }, [user, fetchInitialData]);
 
-  // LOAD MORE LOGIC
+  // PAGINATION
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore || !conversation) return;
 
@@ -93,7 +105,7 @@ export default function PublicChatPage() {
 
   const { containerRef, onScroll } = useChatScroll(chat, loadMore);
 
-  // SOCKET EVENTS
+  // SOCKET MANAGEMENT
   useEffect(() => {
     if (!user || !conversation) return;
 
@@ -152,18 +164,71 @@ export default function PublicChatPage() {
 
   return (
     <div className={styles.container}>
+      {/* SIDEBAR */}
       <div className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
           <span>👤 {user.username}</span>          
-          <button onClick={fetchInitialData} className={styles.refreshBtn} title="Refresh Chat">
+          <button onClick={fetchInitialData} className={styles.refreshBtn} title="Refresh Channels">
             🔄
           </button>
         </div>
-        <OnlineUsers users={onlineUsers} currentUser={user} />
+
+        {/* Dynamic Navigation Tabs inside the Sidebar */}
+        <div className={styles.tabContainer} style={{ display: "flex", borderBottom: "1px solid #eee" }}>
+          <button 
+            onClick={() => setSidebarTab("chats")}
+            style={{ flex: 1, padding: "10px", background: sidebarTab === "chats" ? "#f5f5f5" : "none", border: "none", fontWeight: sidebarTab === "chats" ? "bold" : "normal", cursor: "pointer" }}
+          >
+            💬 Chats
+          </button>
+          <button 
+            onClick={() => setSidebarTab("online")}
+            style={{ flex: 1, padding: "10px", background: sidebarTab === "online" ? "#f5f5f5" : "none", border: "none", fontWeight: sidebarTab === "online" ? "bold" : "normal", cursor: "pointer" }}
+          >
+            🟢 Online ({onlineUsers.length})
+          </button>
+        </div>
+
+        {/* Conditional Tab Rendering */}
+        <div className={styles.sidebarContent} style={{ padding: "10px", overflowY: "auto", flex: 1 }}>
+          {sidebarTab === "chats" ? (
+            <div className={styles.conversationsList} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {/* Permanent Row for Global General Chat room */}
+              <div 
+                className={styles.conversationItemActive} 
+                style={{ padding: "10px", background: "#e6f7ff", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}
+              >
+                🌐 Public General Room
+              </div>
+
+              {/* Private DM Target Mapping Rows */}
+              {conversations.map((c: Conversation) => {
+                // Find out the username of the other person in the private chat
+                //const participant = c.participant?.username || "Direct Message";
+                return (
+                  <div 
+                    key={c.id || c.id} 
+                    onClick={() => navigate(`/chat/${c.id}`)}
+                    style={{ padding: "10px", background: "#fff", borderRadius: "8px", cursor: "pointer", border: "1px solid #eee" }}
+                  >
+                    💬 User
+                  <span>Last message</span>
+                  </div>
+                  
+                );
+              })}
+            </div>
+          ) : (
+            <OnlineUsers users={onlineUsers} currentUser={user} />
+          )}
+        </div>
       </div>
 
+      {/* MAIN VIEWPORT SECTION */}
       <div className={styles.chatSection}>
+
         {loadingMore && <div className={styles.loadingMoreIndicator}>Fetching history...</div>}
+        
         <div className={styles.chatMessages}>
           <PublicChat
             currentUser={user}
@@ -172,6 +237,7 @@ export default function PublicChatPage() {
             onScroll={onScroll}
           />
         </div>
+        
         <div className={styles.chatInput}>
           <MessageInput
             text={text}
