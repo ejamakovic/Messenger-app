@@ -3,10 +3,12 @@
   height: 100vh;
   background-color: var(--bg-main);
   color: var(--text-main);
+  overflow: hidden;
 }
 
+/* Parent defines the physical footprint of the sidebar slot */
 .sidebar {
-  width: 300px; /* Increased for breathing room */
+  width: 300px; 
   display: flex;
   flex-direction: column;
   background: var(--bg-card);
@@ -14,12 +16,16 @@
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.02);
 }
 
+/* Parent defines the footprint of the header slot */
 .sidebarHeader {
   padding: 20px;
   font-size: 1.1rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .chatSection {
@@ -31,7 +37,7 @@
 
 .chatMessages {
   flex: 1;
-  overflow: hidden; /* Contains the scrollable chat */
+  overflow: hidden; 
   display: flex;
   flex-direction: column;
 }

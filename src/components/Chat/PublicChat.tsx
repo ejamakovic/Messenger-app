@@ -18,18 +18,10 @@ export default function PublicChat({ currentUser, messages, containerRef, onScro
   
   // DOWNLOAD LOGIC
   const handleDownload = (url: string) => {
-    // We create a temporary link and simulate a click.
-    // Since we aren't using 'fetch', CORS won't block this.
     const link = document.createElement('a');
     link.href = url;
-  
-    // This tells the browser to try and download it
     link.setAttribute('download', url.split('/').pop() || 'file');
-  
-    // This ensures it opens in a way that triggers the browser's 
-    // native download handler
     link.target = "_blank"; 
-  
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -46,22 +38,33 @@ export default function PublicChat({ currentUser, messages, containerRef, onScro
   return (
     <>
       <div ref={containerRef} onScroll={onScroll} className={styles.chatContainer}>
-        {messages.map((msg) => {
-          const isMine = msg.sender?.username === currentUser.username;
+        {messages.map((msg, index) => {
+          // 1. SAFE SENDER EVALUATION:
+          // Fallback gracefully if msg.sender is an object or just raw senderUsername/senderId
+          const senderUsername = msg.sender?.username || (msg as any).senderUsername;
+          const isMine = senderUsername === currentUser.username || msg.sender === currentUser;
+
+          // 2. FIXED FALLBACK KEY GENERATOR:
+          // Socket messages might arrive without an ID or sharing an incomplete value.
+          // Combining msg.id with fallback timestamp and index prevents rendering collision.
+          const messageKey = msg.id 
+            ? `msg-${msg.id}` 
+            : `socket-${msg.timestamp || ''}-${index}`;
 
           return (
-            <div key={msg.id} className={isMine ? styles.messageRowMine : styles.messageRowTheirs}>
+            <div key={messageKey} className={isMine ? styles.messageRowMine : styles.messageRowTheirs}>
               <div className={isMine ? styles.bubbleMine : styles.bubbleTheirs}>
-                <div className={styles.username}>{msg.sender?.username}</div>
+                <div className={styles.username}>@{senderUsername || "Unknown"}</div>
                 {msg.content && <div className={styles.content}>{msg.content}</div>}
 
-                {msg.attachments?.map((att) => {
+                {msg.attachments?.map((att, attIndex) => {
                   const isImage = att.fileType?.startsWith("image/");
                   const isVideo = att.fileType?.startsWith("video/");
                   const fileUrl = `${API_URL}${att.fileUrl}`;
+                  const attKey = att.id ? `att-${att.id}` : `att-fallback-${attIndex}`;
 
                   return (
-                    <div key={att.id} className={styles.mediaWrapper}>
+                    <div key={attKey} className={styles.mediaWrapper}>
                       {isImage && (
                         <img
                           src={fileUrl}
@@ -95,7 +98,6 @@ export default function PublicChat({ currentUser, messages, containerRef, onScro
       {preview && (
         <div className={styles.imageOverlay} onClick={() => setPreview(null)}>
           <div className={styles.overlayHeader} onClick={(e) => e.stopPropagation()}>
-            {/* Added a Download */}
             <button 
               className={styles.downloadButton} 
               onClick={() => handleDownload(preview.url)}

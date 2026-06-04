@@ -1,14 +1,12 @@
 import styles from "../styles/PublicChatPage.module.css";
 import { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom"; // Added for navigation between chats
-import OnlineUsers from "../components/OnlineUsers";
 import MessageInput from "../components/MessageInput/MessageInput";
 import PublicChat from "../components/Chat/PublicChat";
-import TopMenu from "../components/TopMenu"; // Imported TopMenu component
+import Sidebar, { type ConversationListDto } from "../components/Sidebar/Sidebar"; // Imported Sidebar and DTO
 
 import { subscribe, unsubscribe } from "../services/socket.service";
 import { getOnlineUsers, logoutUser } from "../services/user.service";
-import { getConversationMessages, sendMessage } from "../services/message.service"; // Imported getAllPrivateChats
+import { getConversationMessages, sendMessage } from "../services/message.service"; 
 import { getPublicConversation, getUserConversations } from "../services/conversation.service";
 
 import type { User } from "../models/user";
@@ -20,17 +18,14 @@ import { useAuth } from "../context/AuthContext";
 
 export default function PublicChatPage() {
   const { user, loading } = useAuth();
-  const navigate = useNavigate();
 
   // Navigation & UI Lists
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [onlineUsers, setOnlineUsers] = useState<User[]>([]);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [notifications, setNotifications] = useState<any[]>([]);
   
-  // Sidebar Tab Toggle state ("chats" display or "online" display)
-  const [sidebarTab, setSidebarTab] = useState<"chats" | "online">("chats");
-
+  // Updated state type to track ConversationListDto format
+  const [conversations, setConversations] = useState<ConversationListDto[]>([]);
+  
   // Chat History & Input Processing
   const [chat, setChat] = useState<Message[]>([]);
   const [text, setText] = useState("");
@@ -43,7 +38,7 @@ export default function PublicChatPage() {
 
   /**
    * Fetches initial room setups, online user arrays, and existing user DM records
-   * */
+   **/
   const fetchInitialData = useCallback(async () => {
     if (!user?.username) return;
     
@@ -64,7 +59,7 @@ export default function PublicChatPage() {
       ]);
 
       setOnlineUsers(users);
-      setConversations(privateChats.content || []);
+      setConversations(privateChats.content || []); // Assumes API data complies with ConversationListDto layout
       setChat(messagesPage.content.reverse());
 
       setHasMore(messagesPage.content.length >= 30);
@@ -73,7 +68,7 @@ export default function PublicChatPage() {
     } catch (err) {
       console.error("INITIALIZATION ERROR:", err);
     }
-  }, [user?.username]);
+  }, [user?.username, user?.id]);
 
   useEffect(() => {
     if (user) {
@@ -164,69 +159,17 @@ export default function PublicChatPage() {
 
   return (
     <div className={styles.container}>
-      {/* SIDEBAR */}
-      <div className={styles.sidebar}>
-        <div className={styles.sidebarHeader}>
-          <span>👤 {user.username}</span>          
-          <button onClick={fetchInitialData} className={styles.refreshBtn} title="Refresh Channels">
-            🔄
-          </button>
-        </div>
-
-        {/* Dynamic Navigation Tabs inside the Sidebar */}
-        <div className={styles.tabContainer} style={{ display: "flex", borderBottom: "1px solid #eee" }}>
-          <button 
-            onClick={() => setSidebarTab("chats")}
-            style={{ flex: 1, padding: "10px", background: sidebarTab === "chats" ? "#f5f5f5" : "none", border: "none", fontWeight: sidebarTab === "chats" ? "bold" : "normal", cursor: "pointer" }}
-          >
-            💬 Chats
-          </button>
-          <button 
-            onClick={() => setSidebarTab("online")}
-            style={{ flex: 1, padding: "10px", background: sidebarTab === "online" ? "#f5f5f5" : "none", border: "none", fontWeight: sidebarTab === "online" ? "bold" : "normal", cursor: "pointer" }}
-          >
-            🟢 Online ({onlineUsers.length})
-          </button>
-        </div>
-
-        {/* Conditional Tab Rendering */}
-        <div className={styles.sidebarContent} style={{ padding: "10px", overflowY: "auto", flex: 1 }}>
-          {sidebarTab === "chats" ? (
-            <div className={styles.conversationsList} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {/* Permanent Row for Global General Chat room */}
-              <div 
-                className={styles.conversationItemActive} 
-                style={{ padding: "10px", background: "#e6f7ff", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}
-              >
-                🌐 Public General Room
-              </div>
-
-              {/* Private DM Target Mapping Rows */}
-              {conversations.map((c: Conversation) => {
-                // Find out the username of the other person in the private chat
-                //const participant = c.participant?.username || "Direct Message";
-                return (
-                  <div 
-                    key={c.id || c.id} 
-                    onClick={() => navigate(`/chat/${c.id}`)}
-                    style={{ padding: "10px", background: "#fff", borderRadius: "8px", cursor: "pointer", border: "1px solid #eee" }}
-                  >
-                    💬 User
-                  <span>Last message</span>
-                  </div>
-                  
-                );
-              })}
-            </div>
-          ) : (
-            <OnlineUsers users={onlineUsers} currentUser={user} />
-          )}
-        </div>
-      </div>
+      
+      {/* REFACTORED SIDEBAR COMPONENT */}
+      <Sidebar 
+        user={user}
+        conversations={conversations}
+        onlineUsers={onlineUsers}
+        onRefresh={fetchInitialData}        
+      />
 
       {/* MAIN VIEWPORT SECTION */}
       <div className={styles.chatSection}>
-
         {loadingMore && <div className={styles.loadingMoreIndicator}>Fetching history...</div>}
         
         <div className={styles.chatMessages}>

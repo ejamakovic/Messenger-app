@@ -1,177 +1,172 @@
-import { useParams, useNavigate } from "react-router-dom"
-import MessageInput from "../components/MessageInput/MessageInput"
-import { useCallback, useEffect, useState } from "react"
-import { getConversationMessages, sendMessage } from "../services/message.service"
-import { logoutUser } from "../services/user.service"
-import { subscribe, unsubscribe } from "../services/socket.service"
-import type { Message } from "../models/message"
-import { useChatScroll } from "../hook/useChatScroll"
-import TopMenu from "../components/TopMenu"
-import PublicChat from "../components/Chat/PublicChat"
-import { getUserConversations } from "../services/conversation.service"
+import styles from "../styles/PublicChatPage.module.css";
+import { useEffect, useState, useCallback } from "react";
+import { useParams } from "react-router-dom"; 
+import MessageInput from "../components/MessageInput/MessageInput";
+import PublicChat from "../components/Chat/PublicChat"; 
+import Sidebar, { type ConversationListDto } from "../components/Sidebar/Sidebar";
+
+import { subscribe, unsubscribe } from "../services/socket.service";
+import { getOnlineUsers, logoutUser } from "../services/user.service";
+import { getConversationMessages, sendMessage } from "../services/message.service"; 
+import { getUserConversations, getConversation } from "../services/conversation.service";
+
+import type { User } from "../models/user";
+import type { Message } from "../models/message";
+import type { Conversation } from "../models/conversation";
+
+import { useChatScroll } from "../hook/useChatScroll";
+import { useAuth } from "../context/AuthContext";
 
 export default function PrivateChatPage() {
-  // FIX: Read parameter context as conversationId matching your TopMenu design
-  const { conversationId } = useParams<{ conversationId: string }>()
-  const navigate = useNavigate()
+  const { user, loading } = useAuth();
   
-  if (!conversationId) return <div>Invalid chat room selection</div>
-
-  const user = JSON.parse(sessionStorage.getItem("user") || "null")  
-  const [chat, setChat] = useState<Message[]>([])
-  const [text, setText] = useState("")
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  // Notice we use "conversationId" to match your App.tsx routes setup exactly
+  const { conversationId } = useParams<{ conversationId?: string }>();
   
-  const [conversations, setConversations] = useState<any[]>([])
-  const [notifications, setNotifications] = useState<any[]>([])
-
-  const [page, setPage] = useState(0)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [hasMore, setHasMore] = useState(true)  
-
-  const numericConvId = Number(conversationId)
-
-  // INITIALIZATION LOGIC
-  useEffect(() => {
-    const init = async () => {
-      try {
-        // Reset local layout variables before pulling next data collection
-        setChat([])
-        setPage(0)
-        setHasMore(true)
-
-        const [messagesPage, chats] = await Promise.all([        
-          getConversationMessages(numericConvId, 0),
-          getUserConversations(user.id)
-        ])
-        
-        setChat(messagesPage.content.reverse())
-        setPage(1)
-        setConversations(chats.content || [])
-
-        if (messagesPage.content.length < 30) {
-          setHasMore(false)
-        }
-      } catch (err) {
-        console.error("❌ INIT ERROR:", err)
-      }
-    }
-
-    if (user?.username && conversationId) {
-      init()
-    }
-  }, [conversationId]) // Triggers reload if dropdown switches channels
-
-  // PAGINATION LOGIC
-  const loadMore = useCallback(async () => {
-    if (loadingMore || !hasMore || !user?.username) return
+  const [conversation, setConversation] = useState<Conversation | null>(null);
+  const [onlineUsers, setOnlineUsers] = useState<User[]>([]);
+  const [conversations, setConversations] = useState<ConversationListDto[]>([]);
   
-    setLoadingMore(true)
-  
+  const [chat, setChat] = useState<Message[]>([]);
+  const [text, setText] = useState("");
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [page, setPage] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
+  const canSend = text.trim().length > 0 || selectedFiles.length > 0;
+
+  const fetchPrivateData = useCallback(async () => {
+    if (!user || !conversationId) return;
+
     try {
-      const nextPage = await getConversationMessages(numericConvId, page)
-  
-      if (!nextPage.content || nextPage.content.length === 0) {
-        setHasMore(false)
-        return
-      }
-  
-      setChat((prev) => [
-        ...nextPage.content.reverse(),
-        ...prev
-      ])
-  
-      setPage((p) => p + 1)
+      // 1. Await the database object directly into a local variable first!
+      const fetchedConv = await getConversation(Number(conversationId));
+      if (!fetchedConv) return;
+      
+      // Save it safely to state for layout rendering later
+      setConversation(fetchedConv);
+
+      // 2. Use the local variable (fetchedConv.id) for your concurrent API tasks
+      const [users, messagesPage, privateChats] = await Promise.all([
+        getOnlineUsers(),
+        getConversationMessages(fetchedConv.id, 0), // Clean & safe parameter read!
+        getUserConversations(user.id),
+      ]);
+
+      setOnlineUsers(users);
+      setConversations(privateChats.content || []);
+      setChat(messagesPage.content.reverse());
+
+      setHasMore(messagesPage.content.length >= 30);
+      setPage(1);
     } catch (err) {
-      console.error("LOAD MORE ERROR:", err)
-    } finally {
-      setLoadingMore(false)
+      console.error("PRIVATE INITIALIZATION ERROR:", err);
     }
-  }, [page, loadingMore, hasMore, conversationId, user?.username])
-  
-  const { containerRef, onScroll } = useChatScroll(chat, loadMore)
+  }, [user, conversationId]); // Removed 'conversation' from dependencies to kill infinite loops
+
+  useEffect(() => {
+    if (user && conversationId) {
+      fetchPrivateData();
+    }
+  }, [user, conversationId, fetchPrivateData]);
+
+  // PAGINATION
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || !conversation) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = await getConversationMessages(conversation.id, page);
+      if (nextPage.content.length === 0) {
+        setHasMore(false);
+        return;
+      }
+      setChat((prev) => [...nextPage.content.reverse(), ...prev]);
+      setPage((prev) => prev + 1);
+    } catch (err) {
+      console.error("LOAD MORE ERROR:", err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [page, loadingMore, hasMore, conversation]);
+
+  const { containerRef, onScroll } = useChatScroll(chat, loadMore);
 
   // SOCKET MANAGEMENT
   useEffect(() => {
-    if (!user || !conversationId) return
+    if (!user || !conversation) return;
 
     const handleMessage = (msg: Message) => {
-      // FIX: Matches directly against numeric conv validation properties
-      if (msg.conversationId === numericConvId) {
-        setChat((prev) => [...prev, msg])
+      if (msg.conversationId === conversation.id) {
+        setChat((prev) => [...prev, msg]);
       }
-    }
+    };
 
-    subscribe("message", handleMessage)
+    subscribe("message", handleMessage);
+    return () => unsubscribe("message", handleMessage);
+  }, [user, conversation]);
 
-    return () => {
-      unsubscribe("message", handleMessage)
-    }
-  }, [user, conversationId])
-  
-  // WINDOW CLOSURE HANDLERS
   useEffect(() => {
     const handleClose = () => {
-      if (!user) return
-      logoutUser(user)
-    }
+      if (user) logoutUser(user);
+    };
+    window.addEventListener("beforeunload", handleClose);
+    return () => window.removeEventListener("beforeunload", handleClose);
+  }, [user]);
 
-    window.addEventListener("beforeunload", handleClose)
-    return () => window.removeEventListener("beforeunload", handleClose)
-  }, [user])
-      
-  // SEND MESSAGE LOGIC
   const handleSend = async () => {
-    if (!user || (!text.trim() && !selectedFile)) return
-    
+    if (!canSend || !conversation || !user) return;
     try {
-      // FIX: Passing matching parameter sets: user.id and target conversationId array
-      const filesArray = selectedFile ? [selectedFile] : []
-      await sendMessage(user.id, numericConvId, text, filesArray)
-      
-      setText("")
-      setSelectedFile(null)
+      await sendMessage(user.id, conversation.id, text, selectedFiles);
+      setText("");
+      setSelectedFiles([]);
     } catch (err) {
-      console.error("❌ MESSAGE DISPATCH ERROR:", err)
+      console.error("SEND MESSAGE ERROR:", err);
     }
+  };
+
+  if (loading || !user) {
+    return <div className={styles.loadingContainer}>Loading Chat...</div>;
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
-      <TopMenu
+    <div className={styles.container}>
+      <Sidebar 
+        user={user}
         conversations={conversations}
-        notifications={notifications}        
+        onlineUsers={onlineUsers}
+        onRefresh={fetchPrivateData}
+        className={styles.sidebar}
+        headerClassName={styles.sidebarHeader}
       />
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", padding: "20px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-          <button 
-            onClick={() => navigate("/")} 
-            style={{ padding: "5px 10px", cursor: "pointer" }}
-          >
-            ← Back to Public Room
-          </button>
-          <h3>Private Chat Room #{conversationId}</h3>
+      <div className={styles.chatSection}>
+        <div style={{ padding: "10px 20px", background: "var(--bg-card)", borderBottom: "1px solid var(--border-color)", fontWeight: "bold" }}>
+          🔒 Private Chat with @{conversation?.name || "Loading..."}
         </div>
-      
-        <div style={{ flex: 1, overflowY: "auto", margin: "15px 0" }}>
+
+        {loadingMore && <div className={styles.loadingMoreIndicator}>Fetching history...</div>}
+        
+        <div className={styles.chatMessages}>
           <PublicChat
-            currentUser={user}        
+            currentUser={user}
             messages={chat}
             containerRef={containerRef}
             onScroll={onScroll}
           />
         </div>
-
-        <MessageInput
-          text={text}
-          file={selectedFile ? [selectedFile] : []} // Normalizing to array for subcomponents
-          canSend={text.trim().length > 0 || !!selectedFile}
-          onTextChange={setText}
-          onFileSelect={(files: any[]) => setSelectedFile(files?.[0] || null)}
-          onSend={handleSend}
-        />
+        
+        <div className={styles.chatInput}>
+          <MessageInput
+            text={text}
+            file={selectedFiles}
+            canSend={canSend}
+            onTextChange={setText}
+            onFileSelect={setSelectedFiles}
+            onSend={handleSend}
+          />
+        </div>
       </div>
     </div>
-  )
+  );
 }

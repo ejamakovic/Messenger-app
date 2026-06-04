@@ -1,0 +1,118 @@
+.refreshBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.refreshBtn:hover {
+  background-color: var(--bg-main);
+}
+
+/* Tabs layout within the sidebar structure */
+.tabContainer {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tabButton {
+  flex: 1;
+  padding: 12px;
+  background: none;
+  border: none;
+  font-weight: normal;
+  cursor: pointer;
+  color: var(--text-main);
+  transition: background-color 0.2s ease;
+}
+
+.tabButton:hover {
+  background-color: var(--bg-main);
+}
+
+.tabButtonActive {
+  background-color: var(--bg-main);
+  font-weight: bold;
+}
+
+/* Content Lists */
+.sidebarContent {
+  padding: 15px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.conversationsList,
+.onlineContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Custom Row Styles */
+.publicRoomItem {
+  padding: 12px;
+  background-color: rgba(230, 247, 255, 0.6);
+  color: #0050b3;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
+}
+
+.publicRoomItem:hover {
+  background-color: rgba(230, 247, 255, 0.9);
+}
+
+.conversationItem {
+  padding: 12px;
+  background: var(--bg-card);
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.conversationItem:hover {
+  background-color: var(--bg-main);
+}
+
+.conversationName {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.conversationPreview {
+  font-size: 0.85rem;
+  color: gray;
+  opacity: 0.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.onlineTitle {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.6;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.userItem {
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.userItem:hover {
+  background-color: var(--bg-main);
+}
