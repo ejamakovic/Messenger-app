@@ -1,0 +1,248 @@
+.topMenu {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 56px;
+  width: 100%;
+  padding: 0 24px;
+  background-color: var(--bg);
+  border-bottom: 1px solid var(--border);
+  box-sizing: border-box;
+}
+
+.logoSection {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.logoIcon {
+  color: var(--accent); 
+}
+
+.logoTitle {
+  font-family: var(--heading);
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-h);
+  letter-spacing: -0.2px;
+}
+
+.actionControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dropdownWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.actionIconBtn {
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.15s ease;
+}
+
+.actionIconBtn:hover, .activeBtnState {
+  background-color: var(--code-bg);
+  color: var(--text-h);
+}
+
+.countBadge {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  background-color: var(--accent); 
+  color: var(--bg); /* Flips cleanly between light/dark backgrounds */
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: bold;
+  border-radius: 999px;
+  padding: 0px 4px;
+  min-width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+
+.alertBadgeColor {
+  background-color: #ef4444; /* Standard notifications error attention tint */
+}
+
+.menuDropdownPanel {
+  position: absolute;
+  right: 0;
+  top: 42px;
+  width: 320px;
+  background-color: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  z-index: 200;
+  max-height: 380px;
+  display: flex;
+  flex-direction: column;
+}
+
+.dropdownHeader {
+  padding: 12px 16px;
+  background-color: var(--code-bg);
+  border-bottom: 1px solid var(--border);
+  border-top-left-radius: 7px;
+  border-top-right-radius: 7px;
+}
+
+.dropdownHeader h3 {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-h);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.dropdownBodyList {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.dropdownItemRow {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left; /* Counteracts potential inherited text-align: center from #root */
+  transition: background-color 0.12s ease;
+}
+
+.dropdownItemRow:hover {
+  background-color: var(--accent-bg);
+}
+
+.rowTextData {
+  flex: 1;
+  overflow: hidden;
+}
+
+.unreadAlertHighlight {
+  background-color: var(--accent-bg);
+  border-left: 3px solid var(--accent);
+  padding-left: 13px; /* Compensate for the border offset width */
+}
+
+.rowUnreadDotCount {
+  background-color: var(--accent);
+  color: var(--bg);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+.emptyText {
+  padding: 24px;
+  text-align: center;
+  color: var(--text);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.itemTitle {
+  font-size: 0.85rem;
+  color: var(--text-h);
+  display: block;
+  margin-bottom: 2px;
+}
+
+.itemPreview, .notificationContentText {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.itemPreview {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.divider {
+  width: 1px;
+  height: 18px;
+  background-color: var(--border);
+  margin: 0 8px;
+}
+
+.userProfileSegment {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.userBadgeAvatar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--code-bg);
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.profileUserIcon {
+  color: var(--text);
+}
+
+.profileUsername {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--text-h);
+}
+
+.logoutActionButton {
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.logoutActionButton:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.dropdownBodyList::-webkit-scrollbar {
+  width: 5px;
+}
+.dropdownBodyList::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dropdownBodyList::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 10px;
+}
