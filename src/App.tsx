@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import PublicChatPage from "./pages/publicChatPage";
-import PrivateChatPage from "./pages/privateChatPage";
+// 1. Import ONLY the single, unified page component
+import ChatDashboardPage from "./pages/ChatDashboardPage"; 
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { SocketProvider } from "./context/SocketContext";
 
@@ -13,13 +13,11 @@ function AppRoutes() {
 
   return (
     <BrowserRouter>
-      <Routes>
-        {/* Default Landing or explicit Public Room view */}
-        <Route path="/" element={<PublicChatPage />} />
-        <Route path="/chat/public" element={<PublicChatPage />} />            
-
-        <Route path="/chat/conversation/:conversationId" element={<PrivateChatPage />} />
-        <Route path="/chat/user/:receiverUsername" element={<PrivateChatPage />} />
+      <Routes>       
+        <Route path="/" element={<ChatDashboardPage />} />
+        <Route path="/chat/public" element={<ChatDashboardPage />} />                    
+        <Route path="/chat/conversation/:conversationId" element={<ChatDashboardPage />} />          
+        <Route path="/chat/user/:receiverUsername" element={<ChatDashboardPage />} />
       </Routes>
     </BrowserRouter>
   );

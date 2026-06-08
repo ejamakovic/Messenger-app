@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { login, type AuthResponse } from "../services/jwt.service";
 import type { AuthContextType } from "../models/authContext";
-import type { User } from "../models/user";
+import type { UserModel } from "../models/user";
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -18,7 +18,7 @@ export const AuthProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserModel | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 

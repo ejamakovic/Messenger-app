@@ -1,118 +1,182 @@
-.refreshBtn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 1.1rem;
-  padding: 4px;
-  border-radius: 4px;
-  transition: background-color 0.2s ease;
-}
-
-.refreshBtn:hover {
-  background-color: var(--bg-main);
-}
-
-/* Tabs layout within the sidebar structure */
-.tabContainer {
-  display: flex;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.tabButton {
-  flex: 1;
-  padding: 12px;
-  background: none;
-  border: none;
-  font-weight: normal;
-  cursor: pointer;
-  color: var(--text-main);
-  transition: background-color 0.2s ease;
-}
-
-.tabButton:hover {
-  background-color: var(--bg-main);
-}
-
-.tabButtonActive {
-  background-color: var(--bg-main);
-  font-weight: bold;
-}
-
-/* Content Lists */
-.sidebarContent {
-  padding: 15px;
-  overflow-y: auto;
-  flex: 1;
-}
-
-.conversationsList,
-.onlineContainer {
+.sidebarWrapper {
   display: flex;
   flex-direction: column;
+  background-color: var(--bg);
+  border-right: 1px solid var(--border);
+  height: 100%;
+  width: 300px;
+}
+
+.sidebarSectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  background-color: var(--code-bg);
+}
+
+.headerInfoBlock {
+  display: flex;
+  align-items: center;
   gap: 8px;
 }
 
-/* Custom Row Styles */
-.publicRoomItem {
-  padding: 12px;
-  background-color: rgba(230, 247, 255, 0.6);
-  color: #0050b3;
-  border-radius: 8px;
-  cursor: pointer;
+.liveBroadcastIcon {
+  color: var(--accent);
+}
+
+.headerTitle {
+  font-family: var(--heading);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-h);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.onlineBadgeCount {
+  background-color: var(--accent-bg);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 0.75rem;
   font-weight: bold;
-  transition: background-color 0.2s ease;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--accent-border);
 }
 
-.publicRoomItem:hover {
-  background-color: rgba(230, 247, 255, 0.9);
-}
-
-.conversationItem {
-  padding: 12px;
-  background: var(--bg-card);
-  border-radius: 8px;
+.sidebarRefreshBtn {
+  background: none;
+  border: none;
+  color: var(--text);
   cursor: pointer;
-  border: 1px solid var(--border-color);
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.sidebarRefreshBtn:hover {
+  background-color: var(--border);
+  color: var(--text-h);
+  transform: rotate(45deg);
+}
+
+.onlineUserScrollContainer {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  transition: background-color 0.2s ease;
+  gap: 6px;
 }
 
-.conversationItem:hover {
-  background-color: var(--bg-main);
-}
-
-.conversationName {
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-
-.conversationPreview {
-  font-size: 0.85rem;
-  color: gray;
-  opacity: 0.8;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.onlineTitle {
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  opacity: 0.6;
-  margin-bottom: 6px;
-  font-weight: 600;
-}
-
-.userItem {
+.interactiveUserCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   padding: 10px 12px;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  background-color: transparent;
+  text-align: left; /* Ensure user details align well */
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
 }
 
-.userItem:hover {
-  background-color: var(--bg-main);
+.interactiveUserCard:hover {
+  background-color: var(--code-bg);
+  border-color: var(--border);
+}
+
+.avatarMockBlock {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  background-color: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-h);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.targetCardUsername {
+  font-size: 0.85rem;
+  color: var(--text);
+  transition: color 0.15s ease;
+}
+
+.interactiveUserCard:hover .targetCardUsername {
+  color: var(--text-h);
+}
+
+.statusIndicatorPulse {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  background-color: var(--accent);
+  border-radius: 50%;
+  border: 2px solid var(--bg);
+}
+
+.statusIndicatorPulse::after {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  animation: radarPulse 2.5s infinite ease-in-out;
+  opacity: 0;
+}
+
+@keyframes radarPulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+.emptyStatusPlaceholder {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text);
+}
+
+.emptyStatusPlaceholder p {
+  margin: 0 0 4px 0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-h);
+}
+
+.emptyStatusPlaceholder span {
+  font-size: 0.75rem;
+}
+
+.onlineUserScrollContainer::-webkit-scrollbar {
+  width: 5px;
+}
+.onlineUserScrollContainer::-webkit-scrollbar-track {
+  background: transparent;
+}
+.onlineUserScrollContainer::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 10px;
 }

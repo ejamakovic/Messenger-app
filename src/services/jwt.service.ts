@@ -1,8 +1,8 @@
-import type { User } from "../models/user";
+import type { UserModel } from "../models/user";
 import { api } from "./api" 
 
 export type AuthResponse = {
-  user: User
+  user: UserModel
   token: string
 }
 

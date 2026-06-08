@@ -5,6 +5,7 @@ type SocketEvent =
   | "user_join"
   | "user_leave"
   | "chat_request"
+  | "notification"
 
 type Listener = (data: any) => void
 
@@ -13,6 +14,7 @@ const listeners: Record<SocketEvent, Set<Listener>> = {
   user_join: new Set(),
   user_leave: new Set(),
   chat_request: new Set(),
+  notification: new Set(),
 }
 
 export const connectSocket = (token: string) => {

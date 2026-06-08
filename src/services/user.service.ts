@@ -1,16 +1,16 @@
 import { api } from "./api"
-import type { User } from "../models/user"
+import type { UserModel } from "../models/user"
 
-export const getOnlineUsers = async (): Promise<User[]> => {
+export const getOnlineUsers = async (): Promise<UserModel[]> => {
   const res = await api.get("/users/connected")
   return res.data
 }
 
-export const registerUser = async (currentUser: User): Promise<User> => {
+export const registerUser = async (currentUser: UserModel): Promise<UserModel> => {
   const res = await api.post("/users/create", currentUser)
   return res.data
 }
 
-export const logoutUser = async (currentUser: User): Promise<void> => {
+export const logoutUser = async (currentUser: UserModel): Promise<void> => {
   await api.post("/users/logout", currentUser)
 }

@@ -1,13 +1,13 @@
 import styles from "../styles/OnlineUsers.module.css"
-import type { User } from "../models/user"
+import type { UserModel } from "../models/user"
 import { useNavigate } from "react-router-dom"
 
 export default function OnlineUsers({
   users,
   currentUser
 }: {
-  users: User[]
-  currentUser: User
+  users: UserModel[]
+  currentUser: UserModel
 }) {
   const navigate = useNavigate()
 

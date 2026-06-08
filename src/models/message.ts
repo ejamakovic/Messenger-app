@@ -1,10 +1,10 @@
 import type { Attachment } from "./attachment"
-import type { User } from "./user"
+import type { UserModel } from "./user"
 
 export type Message = {
   id: number
   content: string
-  sender: User
+  sender: UserModel
   conversationId: number
   timestamp: string
   attachments?: Attachment[]
