@@ -19,6 +19,7 @@ import type { NotificationDto } from "../models/notification";
 
 import { useChatScroll } from "../hook/useChatScroll";
 import { useAuth } from "../context/AuthContext";
+import { getNotifications } from "../services/notification.service";
 
 export default function ChatDashboardPage() {
   const { user, loading } = useAuth();
@@ -63,17 +64,17 @@ export default function ChatDashboardPage() {
         
       setConversation(currentConv);
       
-      const [users, messagesPage, privateChats] = await Promise.all([
+      const [users, messagesPage, privateChats, privateNotifications] = await Promise.all([
         getOnlineUsers(),
         getConversationMessages(currentConv.id, 0),
-        getUserConversations(user.id),
-        // If you have a real REST notifications fetch endpoint, add it here:
-        // getMyNotifications()
+        getUserConversations(user.id),      
+        getNotifications(user.id)
       ]);
 
       setOnlineUsers(users);
       setConversations(privateChats.content || []);
       setChat(messagesPage.content.reverse());
+      setNotifications(privateNotifications);
 
       setHasMore(messagesPage.content.length >= 30);
       setPage(1);
@@ -116,11 +117,9 @@ export default function ChatDashboardPage() {
     if (!user || !conversation) return;
 
     const handleMessage = (msg: Message) => {
-      if (msg.conversationId === conversation.id) {
-        // 1. Direct message capture to screen frame viewport stream
+      if (msg.conversationId === conversation.id) {        
         setChat((prev) => [...prev, msg]);
-      } else {
-        // 2. Increment active dropdown badge item unread targets dynamically if received elsewhere
+      } else {    
         setConversations((prev) => {
           const exists = prev.some((c) => c.id === msg.conversationId);
           if (exists) {
@@ -129,8 +128,7 @@ export default function ChatDashboardPage() {
                 ? { ...c, unreadCount: (c.unreadCount || 0) + 1, lastMessage: msg.content }
                 : c
             );
-          }
-          // Fallback context fallback insert structure if new dynamic message creates a room
+          }          
           return [
             {
               id: msg.conversationId,
@@ -207,7 +205,7 @@ export default function ChatDashboardPage() {
 
   return (
     <div className={styles.masterWrapper}>
-      {/* 1. FIXED TOP NAV CONTROLS FOR CHATS & NOTIFICATION ACTIONS */}
+      {/* TOP NAV CONTROLS FOR CHATS & NOTIFICATION ACTIONS */}
       <TopMenu 
         user={user} 
         conversations={conversations} 
@@ -215,7 +213,7 @@ export default function ChatDashboardPage() {
       />
 
       <div className={styles.container}>
-        {/* 2. RECONSTRUCTED CLEAN ONLINE-ONLY DIRECTORY SIDEBAR */}
+        {/* SIDEBAR */}
         <Sidebar 
           user={user}        
           onlineUsers={onlineUsers}
@@ -223,7 +221,7 @@ export default function ChatDashboardPage() {
           className={styles.sidebar}        
         />
         
-        {/* 3. CORE ACTIVE DISPLAY PANEL STREAM */}
+        {/* DISPLAY PANEL STREAM */}
         <div className={styles.chatSection}>
           <div className={styles.activeChannelBanner}>
             {conversationId ? (

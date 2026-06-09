@@ -1,7 +1,11 @@
+import type { UserModel } from "./user"
 
 export type NotificationDto = {
-    id: number;
-    content: string;
-    isRead: boolean;
-    sourceId?: number; // convId, userId, requestId, idk...
+    id: number
+    recipient: UserModel
+    referenceId: number
+    notificationType: string
+    status: string
+    content: string    
+    timestamp: string
 } 

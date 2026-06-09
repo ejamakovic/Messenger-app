@@ -33,7 +33,7 @@ export default function TopMenu({ user, conversations, notifications }: TopMenuP
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const unreadNotifCount = notifications.filter(n => !n.isRead).length;
+  const unreadNotifCount = notifications.filter(n => n.status == "DELIVERED").length;
   
   // Count conversations that have an active unread count flag attached
   const activeChatsCount = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
@@ -133,9 +133,9 @@ export default function TopMenu({ user, conversations, notifications }: TopMenuP
                   notifications.map((notif) => (
                     <div 
                       key={notif.id} 
-                      className={`${styles.dropdownItemRow} ${!notif.isRead ? styles.unreadAlertHighlight : ""}`}
+                      className={`${styles.dropdownItemRow} ${!notif.status ? styles.unreadAlertHighlight : ""}`}
                       onClick={() => {
-                        if (notif.sourceId) handleConversationSelect(notif.sourceId);
+                        if (notif.referenceId) handleConversationSelect(notif.referenceId);
                         setShowNotifDropdown(false);
                       }}
                     >
