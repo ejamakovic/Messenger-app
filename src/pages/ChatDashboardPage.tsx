@@ -57,7 +57,7 @@ export default function ChatDashboardPage() {
       } else {
         currentConv = await getPublicConversation();
       }
-
+      
       if (!currentConv?.id) {
         throw new Error("Target conversation context could not be resolved.");
       }
@@ -117,30 +117,42 @@ export default function ChatDashboardPage() {
     if (!user || !conversation) return;
 
     const handleMessage = (msg: Message) => {
-      if (msg.conversationId === conversation.id) {        
-        setChat((prev) => [...prev, msg]);
-      } else {    
-        setConversations((prev) => {
-          const exists = prev.some((c) => c.id === msg.conversationId);
-          if (exists) {
-            return prev.map((c) =>
-              c.id === msg.conversationId
-                ? { ...c, unreadCount: (c.unreadCount || 0) + 1, lastMessage: msg.content }
-                : c
-            );
-          }          
+    // Message belongs to the room the user is currently looking at
+    if (msg.conversationId === conversation?.id) {        
+      setChat((prev) => [...prev, msg]);
+    } else {    
+      // Update the background inbox dropdown list
+      setConversations((prev) => {
+        const exists = prev.some((c) => c.id === msg.conversationId);
+      
+        if (exists) {
+          // Find the room, increment its count, update the preview text, and push it to the top
+          const targetRoom = prev.find((c) => c.id === msg.conversationId)!;
+          const remainingRooms = prev.filter((c) => c.id !== msg.conversationId);
+        
           return [
             {
-              id: msg.conversationId,
-              name: msg.sender.username || `User #${msg.sender.id}`,
-              lastMessage: msg.content,
-              unreadCount: 1,
-            } as ConversationListDto,
-            ...prev,
+              ...targetRoom,
+              unreadCount: (targetRoom.unreadCount || 0) + 1,
+              lastMessage: msg.content
+            },
+            ...remainingRooms
           ];
-        });
-      }
-    };
+        } else {          
+          // THE ROOM IS NOT IN THE LIST: Construct a new row using the sender data from the payload
+          const newDynamicRoom: ConversationListDto = {
+            id: msg.conversationId,            
+            name: msg.sender?.username || `User #${msg.sender?.id || 'Unknown'}`,
+            lastMessage: msg.content,
+            unreadCount: 1,
+          };
+
+          // Put the brand new conversation at the very top of the list array
+          return [newDynamicRoom, ...prev];
+        }        
+      });
+    }
+  };
 
     const handleUserJoin = (data: any) => {
       const newUser = data.user;
@@ -173,6 +185,8 @@ export default function ChatDashboardPage() {
       unsubscribe("notification", handleNotification);
     };
   }, [user, conversation]);
+
+
 
   useEffect(() => {
     const handleClose = () => {
@@ -209,7 +223,12 @@ export default function ChatDashboardPage() {
       <TopMenu 
         user={user} 
         conversations={conversations} 
-        notifications={notifications} 
+        notifications={notifications}
+        onNotificationRead={(targetId) => {          
+          setNotifications((prev) =>
+          prev.map((n) => (n.id === targetId ? { ...n, status: "OPENED" } : n))
+          );
+        }}
       />
 
       <div className={styles.container}>

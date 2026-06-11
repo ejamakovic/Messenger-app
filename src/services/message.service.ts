@@ -19,7 +19,7 @@ export const sendMessage = async (
     formData.append("files", file);
   });
 
-  const res = await api.post("/messages/send", formData)
+  const res = await api.post("/messages", formData)
 
   return res.data
 }

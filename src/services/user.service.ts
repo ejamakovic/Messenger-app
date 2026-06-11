@@ -7,7 +7,7 @@ export const getOnlineUsers = async (): Promise<UserModel[]> => {
 }
 
 export const registerUser = async (currentUser: UserModel): Promise<UserModel> => {
-  const res = await api.post("/users/create", currentUser)
+  const res = await api.post("/users", currentUser)
   return res.data
 }
 

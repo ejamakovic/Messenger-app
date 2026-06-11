@@ -8,3 +8,19 @@ export const getNotifications = async (
 
     return res.data
 } 
+
+export const putNotificationStatus = async (
+    id: number,
+    status: string
+) : Promise<NotificationDto> => {
+    const res = await api.patch(`/notifications/${id}/status`,
+        status,
+        {
+            headers: {
+                "Content-Type": "text/plain"
+            }
+        }
+    );
+    
+    return res.data
+}

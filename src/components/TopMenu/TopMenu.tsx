@@ -7,14 +7,16 @@ import styles from "./TopMenu.module.css";
 import type { ConversationListDto } from "../../models/conversationListDto";
 import type { NotificationDto } from "../../models/notification";
 import ThemeToggle from "../ThemeToggle/ThemeToggle";
+import { putNotificationStatus } from "../../services/notification.service";
 
 interface TopMenuProps {
   user: UserModel;
   conversations: ConversationListDto[];
   notifications: NotificationDto[];
+  onNotificationRead: (id: number) => void;
 }
 
-export default function TopMenu({ user, conversations, notifications }: TopMenuProps) {
+export default function TopMenu({ user, conversations, notifications, onNotificationRead }: TopMenuProps) {
   const navigate = useNavigate();
   
   const [showChatsDropdown, setShowChatsDropdown] = useState(false);
@@ -60,7 +62,7 @@ export default function TopMenu({ user, conversations, notifications }: TopMenuP
           <Globe size={18} />
         </button>
 
-        {/* 💬 ALL ACTIVE CHATS / INBOX DROPDOWN */}
+        {/* ALL ACTIVE CHATS / INBOX DROPDOWN */}
         <div className={styles.dropdownWrapper}>
           <button 
             className={`${styles.actionIconBtn} ${showChatsDropdown ? styles.activeBtnState : ""}`}
@@ -108,7 +110,7 @@ export default function TopMenu({ user, conversations, notifications }: TopMenuP
           )}
         </div>
 
-        {/* 🔔 SYSTEM & MESSAGE NOTIFICATIONS DROPDOWN */}
+        {/* SYSTEM & MESSAGE NOTIFICATIONS DROPDOWN */}
         <div className={styles.dropdownWrapper}>
           <button 
             className={`${styles.actionIconBtn} ${showNotifDropdown ? styles.activeBtnState : ""}`}
@@ -133,11 +135,16 @@ export default function TopMenu({ user, conversations, notifications }: TopMenuP
                   notifications.map((notif) => (
                     <div 
                       key={notif.id} 
-                      className={`${styles.dropdownItemRow} ${!notif.status ? styles.unreadAlertHighlight : ""}`}
-                      onClick={() => {
-                        if (notif.referenceId) handleConversationSelect(notif.referenceId);
-                        setShowNotifDropdown(false);
-                      }}
+                      className={`${styles.dropdownItemRow} ${notif.status === "DELIVERED" ? styles.unreadAlertHighlight : ""}`}
+                      onClick={async () => {
+                        try {              
+                          await putNotificationStatus(notif.id, "OPENED");
+                                  
+                          onNotificationRead(notif.id);
+                        } catch (err) {
+                          console.error("Failed to update notification status:", err);
+                      }
+                    }}
                     >
                       <p className={styles.notificationContentText}>{notif.content}</p>
                     </div>
