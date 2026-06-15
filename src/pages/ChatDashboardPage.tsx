@@ -61,7 +61,7 @@ export default function ChatDashboardPage() {
       if (!currentConv?.id) {
         throw new Error("Target conversation context could not be resolved.");
       }
-        
+            
       setConversation(currentConv);
       
       const [users, messagesPage, privateChats, privateNotifications] = await Promise.all([

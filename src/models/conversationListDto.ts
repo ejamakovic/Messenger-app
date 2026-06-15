@@ -4,6 +4,6 @@ export type ConversationListDto = {
     lastMessage: string;   // Preview snippet text
     unreadCount: number;   // Dynamic unread count database response metric
     senderId?: number;
-    senderUsername?: string;
+    senderUsername?: string;    
     timestamp?: string;   
 }

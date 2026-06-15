@@ -1,5 +1,6 @@
-import type { ConversationListDto } from "../components/Sidebar/Sidebar";
+
 import type { Conversation } from "../models/conversation";
+import type { ConversationListDto } from "../models/conversationListDto";
 import type { Page } from "../models/Page";
 import { api } from "./api";
 
