@@ -4,8 +4,9 @@ import type { ConversationListDto } from "../models/conversationListDto";
 import type { Page } from "../models/Page";
 import { api } from "./api";
 
-export const getPublicConversation =
-  async (): Promise<Conversation> => {
+export const getPublicConversation = async (
+
+) : Promise<Conversation> => {
 
     const res = await api.get(
       `/conversations/global`
@@ -19,6 +20,7 @@ export const getUserConversations = async (
   page = 0,
   size = 30
 ) : Promise<Page<ConversationListDto>> => {
+
   const res = await api.get(`/conversations/user/${userId}`, {
     params: { page, size },
   });
@@ -30,15 +32,18 @@ export const getOrCreatePrivateConversation = async (
   senderId: number,
   receiverId: number
 ) : Promise<Conversation> => {
+
   const res = await api.get(`/conversations/private`, {
     params: { senderId, receiverId },
   });
+
   return res.data
 }
 
 export const getConversation = async (
   id: number
 ) : Promise<Conversation> => {
+  
   const res = await api.get(`/conversations/${id}`);
 
   return res.data

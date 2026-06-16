@@ -4,6 +4,7 @@ import type { UserModel } from "./user"
 export type Message = {
   id: number
   content: string
+  status: string
   sender: UserModel
   conversationId: number
   timestamp: string

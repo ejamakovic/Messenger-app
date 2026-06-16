@@ -8,13 +8,12 @@ export const sendMessage = async (
   content: string,
   files: File[] 
 ) => {
+
   const formData = new FormData();
 
   formData.append("senderId", String(senderId))
   formData.append("conversationId", String(conversationId))
-
   formData.append("content", content || "")
-
   files.forEach((file) => {
     formData.append("files", file);
   });
@@ -29,9 +28,23 @@ export const getConversationMessages = async (
   page = 0,
   size = 30
 ): Promise<Page<Message>> => {
+
   const res = await api.get(`/messages/conversation/${conversationId}`, {
     params: { page, size },
   });
+
+  return res.data
+}
+
+export const putLastSeenMessageInConversationForUser = async (
+  userId: number,
+  lastSeenMessageId: number,
+  conversationId: number
+)  => {
+
+  const res = await api.patch(`/messages/user/${userId}`, {
+    params: { lastSeenMessageId, conversationId}
+    })
 
   return res.data
 }

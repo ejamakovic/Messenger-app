@@ -33,7 +33,7 @@ export default function PublicChat({ currentUser, messages, containerRef, onScro
     };
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
-  }, []);
+  }, []);  
 
   return (
     <>
@@ -41,8 +41,7 @@ export default function PublicChat({ currentUser, messages, containerRef, onScro
         {messages.map((msg, index) => {
           const senderUsername = msg.sender?.username || (msg as any).senderUsername;
           const isMine = senderUsername === currentUser.username || msg.sender === currentUser;
-
-          // 🛡️ STABLE KEY GENERATOR FIX:
+          
           // Instead of changing keys from socket -> db id, we build a key that stays identical.
           // If the message has a distinct client timestamp, we prioritize keeping it unified.
           const stableIdentifier = msg.timestamp || index;

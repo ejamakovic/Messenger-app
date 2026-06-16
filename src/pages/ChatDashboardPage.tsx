@@ -31,20 +31,21 @@ export default function ChatDashboardPage() {
   const [notifications, setNotifications] = useState<NotificationDto[]>([]);
   
   const [chat, setChat] = useState<Message[]>([]);
+
+  // MESSAGE 
   const [text, setText] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [page, setPage] = useState(0);
+  const canSend = text.trim().length > 0 || selectedFiles.length > 0;
 
   // DASHBOARD WORKSPACE LOADING STATES
   const [pageLoading, setPageLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
 
-  const canSend = text.trim().length > 0 || selectedFiles.length > 0;
-
-  /**
-   * Fetches context updates, inbox conversations index summary, and online active directory status sets
-   **/
+  // ---------------------------------------------------
+  // ----------------- INIT ----------------------------
+  // ---------------------------------------------------
   const fetchChatData = useCallback(async () => {
     if (!user) return;
     setPageLoading(true);
@@ -91,7 +92,10 @@ export default function ChatDashboardPage() {
     }
   }, [user, conversationId, fetchChatData]);
 
-  // PAGINATION ENGINE FOR CHAT HISTORY WINDOW PANEL
+
+  // ---------------------------------------------------
+  // --------------- PAGINATION ------------------------
+  // ---------------------------------------------------
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore || !conversation) return;
     setLoadingMore(true);
@@ -112,7 +116,10 @@ export default function ChatDashboardPage() {
 
   const { containerRef, onScroll } = useChatScroll(chat, loadMore);
 
-  // REALTIME WEB-SOCKET LAYER INTERACTION LIFECYCLES
+
+  // -------------------------------------------------
+  // ---------------- SOCKET -------------------------
+  // -------------------------------------------------
   useEffect(() => {
     if (!user || !conversation) return;
 
@@ -186,7 +193,6 @@ export default function ChatDashboardPage() {
       unsubscribe("notification", handleNotification);
     };
   }, [user, conversation]);
-
 
 
   useEffect(() => {
