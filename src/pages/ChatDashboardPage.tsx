@@ -170,6 +170,7 @@ export default function ChatDashboardPage() {
     };
 
     const handleNotification = (notif: NotificationDto) => {
+      console.log(notif)
       setNotifications((prev) => [notif, ...prev]);
     };
 

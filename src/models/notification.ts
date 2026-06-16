@@ -1,7 +1,7 @@
 import type { UserModel } from "./user"
 
 export type NotificationDto = {
-    id: number
+    id: number    
     recipient: UserModel
     referenceId: number
     notificationType: string

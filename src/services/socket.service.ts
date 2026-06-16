@@ -4,7 +4,6 @@ type SocketEvent =
   | "message"
   | "user_join"
   | "user_leave"
-  | "chat_request"
   | "notification"
 
 type Listener = (data: any) => void
@@ -12,8 +11,7 @@ type Listener = (data: any) => void
 const listeners: Record<SocketEvent, Set<Listener>> = {
   message: new Set(),
   user_join: new Set(),
-  user_leave: new Set(),
-  chat_request: new Set(),
+  user_leave: new Set(),  
   notification: new Set(),
 }
 
