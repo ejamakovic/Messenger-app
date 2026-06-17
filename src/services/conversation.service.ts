@@ -48,3 +48,19 @@ export const getConversation = async (
 
   return res.data
 }
+
+/**
+ * Updates the last seen message tracking for a specific user within a conversation.
+ */
+export const putLastSeenMessageInConversationForUser = async (
+  userId: number,
+  lastSeenMessageId: number,
+  conversationId: number
+) => {
+  
+  const res = await api.patch(`/conversations/${conversationId}/last-seen`, {}, {
+    params: { userId, lastSeenMessageId }
+  });
+
+  return res.data
+}

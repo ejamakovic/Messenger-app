@@ -36,17 +36,5 @@ export const getConversationMessages = async (
   return res.data
 }
 
-export const putLastSeenMessageInConversationForUser = async (
-  userId: number,
-  lastSeenMessageId: number,
-  conversationId: number
-)  => {
-
-  const res = await api.patch(`/messages/user/${userId}`, {
-    params: { lastSeenMessageId, conversationId}
-    })
-
-  return res.data
-}
 
 

@@ -9,7 +9,7 @@ import TopMenu from "../components/TopMenu/TopMenu";
 import { subscribe, unsubscribe } from "../services/socket.service";
 import { getOnlineUsers, logoutUser } from "../services/user.service";
 import { getConversationMessages, sendMessage } from "../services/message.service"; 
-import { getUserConversations, getConversation, getPublicConversation } from "../services/conversation.service";
+import { getUserConversations, getConversation, getPublicConversation, putLastSeenMessageInConversationForUser } from "../services/conversation.service";
 
 import type { UserModel } from "../models/user";
 import type { Message } from "../models/message";
@@ -72,13 +72,22 @@ export default function ChatDashboardPage() {
         getNotifications(user.id)
       ]);
 
+      const reversedChat = messagesPage.content.reverse(); // Store locally first
+
       setOnlineUsers(users);
       setConversations(privateChats.content || []);
-      setChat(messagesPage.content.reverse());
+      setChat(reversedChat);
       setNotifications(privateNotifications);
 
       setHasMore(messagesPage.content.length >= 30);
       setPage(1);
+
+      // 🌟 ADD THIS: Mark as read right after setting the chat state
+      if (reversedChat.length > 0) {
+        const lastMessageId = reversedChat[reversedChat.length - 1].id;
+        await putLastSeenMessageInConversationForUser(user.id, lastMessageId, currentConv.id);
+      }
+
     } catch (err) {
       console.error("CHAT STORAGE INITIALIZATION ERROR:", err);
     } finally {
@@ -92,6 +101,40 @@ export default function ChatDashboardPage() {
     }
   }, [user, conversationId, fetchChatData]);
 
+  // ---------------------------------------------------
+  // ------------ LAST SEEN TRACKING -------------------
+  // ---------------------------------------------------
+  const markConversationAsRead = useCallback(async (currentChatList = chat) => {
+    if (!conversation?.id || !user || currentChatList.length === 0) return;
+
+    // Get the ID of the newest message in the stream
+    const lastMessageId = currentChatList[currentChatList.length - 1].id;
+
+    try {
+      await putLastSeenMessageInConversationForUser(user.id, lastMessageId, conversation.id);
+
+      // Clear the local badge count in the left sidebar list
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === conversation.id ? { ...c, unreadCount: 0 } : c
+        )
+      );
+    } catch (err) {
+      console.error("FAILED TO UPDATE LAST SEEN:", err);
+    }
+  }, [conversation?.id, user, chat]);
+
+  // Trigger read receipt update when a user refocuses the browser window
+  useEffect(() => {
+    const handleWindowFocus = () => {
+      if (document.hasFocus()) {
+        markConversationAsRead();
+      }
+    };
+
+    window.addEventListener("focus", handleWindowFocus);
+    return () => window.removeEventListener("focus", handleWindowFocus);
+  }, [markConversationAsRead]);
 
   // ---------------------------------------------------
   // --------------- PAGINATION ------------------------
@@ -124,10 +167,20 @@ export default function ChatDashboardPage() {
     if (!user || !conversation) return;
 
     const handleMessage = (msg: Message) => {
-    // Message belongs to the room the user is currently looking at
-    if (msg.conversationId === conversation?.id) {        
-      setChat((prev) => [...prev, msg]);
-    } else {    
+      // Message belongs to the room the user is currently looking at
+      if (msg.conversationId === conversation?.id) {        
+        setChat((prev) => {
+          const updatedChat = [...prev, msg];
+          
+          // If window has focus, hit your route with the incoming message's ID
+          if (document.hasFocus()) {
+            putLastSeenMessageInConversationForUser(user.id, msg.id, conversation.id)
+              .catch(err => console.error(err));
+          }
+          
+          return updatedChat;
+        });
+      } else {    
       // Update the background inbox dropdown list
       setConversations((prev) => {
         const exists = prev.some((c) => c.id === msg.conversationId);
@@ -176,8 +229,7 @@ export default function ChatDashboardPage() {
       setOnlineUsers((prev) => prev.filter((u) => u.username !== leftUser.username));
     };
 
-    const handleNotification = (notif: NotificationDto) => {
-      console.log(notif)
+    const handleNotification = (notif: NotificationDto) => {      
       setNotifications((prev) => [notif, ...prev]);
     };
 
@@ -195,6 +247,9 @@ export default function ChatDashboardPage() {
   }, [user, conversation]);
 
 
+  // -------------------------------------------------
+  // ---------------- USER LOGOUT --------------------
+  // -------------------------------------------------
   useEffect(() => {
     const handleClose = () => {
       if (user) logoutUser(user);
@@ -202,6 +257,11 @@ export default function ChatDashboardPage() {
     window.addEventListener("beforeunload", handleClose);
     return () => window.removeEventListener("beforeunload", handleClose);
   }, [user]);
+
+
+  // -------------------------------------------------
+  // ---------------- MESSAGE SENDING ----------------
+  // -------------------------------------------------
 
   const handleSend = async () => {
     if (!canSend || !conversation || !user) return;
@@ -218,7 +278,7 @@ export default function ChatDashboardPage() {
   if (loading || !user) {
     return <div className={styles.appSpinnerView}>Synchronizing authorization session tokens...</div>;
   }
-
+  
   // Dashboard Workspace Component Loading Breakout Guard
   if (pageLoading) {
     return <div className={styles.appSpinnerView}>Loading chat resources and historical frames...</div>;
