@@ -35,10 +35,10 @@ export default function Sidebar({
       <div className={styles.sidebarSectionHeader}> 
         <div className={styles.headerInfoBlock}>
           <Radio size={16} className={styles.liveBroadcastIcon} />
-          <span className={styles.headerTitle}>Online Directory</span>
+          <span className={styles.headerTitle}>Korisnici online</span>
           <span className={styles.onlineBadgeCount}>{filteredOnlineUsers.length}</span>
         </div>
-        <button onClick={onRefresh} className={styles.sidebarRefreshBtn} title="Refresh Directory">
+        <button onClick={onRefresh} className={styles.sidebarRefreshBtn} title="Osvježi">
           <RefreshCw size={14} />
         </button>
       </div>

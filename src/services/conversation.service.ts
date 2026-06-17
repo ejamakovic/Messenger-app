@@ -52,15 +52,19 @@ export const getConversation = async (
 /**
  * Updates the last seen message tracking for a specific user within a conversation.
  */
-export const putLastSeenMessageInConversationForUser = async (
+export const patchConversationLastSeen = async (
+  conversationId: number,
   userId: number,
-  lastSeenMessageId: number,
-  conversationId: number
-) => {
-  
-  const res = await api.patch(`/conversations/${conversationId}/last-seen`, {}, {
-    params: { userId, lastSeenMessageId }
+  lastSeenMessageId: number
+): Promise<void> => {
+  // 🔍 LOG 4: Trace the raw payload mapping structure before transmission
+  console.log("📡 Axios Request executing:", {
+    url: `/conversations/${conversationId}/last-seen`,
+    body: { userId, lastSeenMessageId }
   });
 
-  return res.data
+  await api.patch(`/conversations/${conversationId}/last-seen`, {
+    userId,
+    lastSeenMessageId
+  });
 }

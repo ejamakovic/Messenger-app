@@ -1,15 +1,15 @@
 import styles from "./ChatDashboardPage.module.css";
 import { useEffect, useState, useCallback } from "react";
-import { useParams } from "react-router-dom"; 
+import { useParams } from "react-router-dom";
 import MessageInput from "../components/MessageInput/MessageInput";
-import Chat from "../components/Chat/Chat"; 
+import Chat from "../components/Chat/Chat";
 import Sidebar from "../components/Sidebar/Sidebar";
 import TopMenu from "../components/TopMenu/TopMenu";
 
 import { subscribe, unsubscribe } from "../services/socket.service";
 import { getOnlineUsers, logoutUser } from "../services/user.service";
-import { getConversationMessages, sendMessage } from "../services/message.service"; 
-import { getUserConversations, getConversation, getPublicConversation, putLastSeenMessageInConversationForUser } from "../services/conversation.service";
+import { getConversationMessages, sendMessage } from "../services/message.service";
+import { getUserConversations, getConversation, getPublicConversation, patchConversationLastSeen } from "../services/conversation.service";
 
 import type { UserModel } from "../models/user";
 import type { Message } from "../models/message";
@@ -21,117 +21,175 @@ import { useChatScroll } from "../hook/useChatScroll";
 import { useAuth } from "../context/AuthContext";
 import { getNotifications } from "../services/notification.service";
 
+// ─── Dev logger ────────────────────────────────────────────────────────────────
+// All console output is gated behind this flag.
+// In production (NODE_ENV=production) nothing is logged.
+const IS_DEV = import.meta.env.DEV;
+
+const log = {
+  info:  (tag: string, msg: string, data?: unknown) => IS_DEV && console.log(`[${tag}] ${msg}`, data ?? ""),
+  warn:  (tag: string, msg: string, data?: unknown) => IS_DEV && console.warn(`[${tag}] ⚠️ ${msg}`, data ?? ""),
+  error: (tag: string, msg: string, data?: unknown) => console.error(`[${tag}] ❌ ${msg}`, data ?? ""),
+  //            ↑ errors always log — you want these in production monitoring
+};
+// ───────────────────────────────────────────────────────────────────────────────
+
 export default function ChatDashboardPage() {
   const { user, loading } = useAuth();
   const { conversationId } = useParams<{ conversationId?: string }>();
-  
+
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [onlineUsers, setOnlineUsers] = useState<UserModel[]>([]);
   const [conversations, setConversations] = useState<ConversationListDto[]>([]);
   const [notifications, setNotifications] = useState<NotificationDto[]>([]);
-  
   const [chat, setChat] = useState<Message[]>([]);
 
-  // MESSAGE 
   const [text, setText] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const canSend = text.trim().length > 0 || selectedFiles.length > 0;
 
-  // DASHBOARD WORKSPACE LOADING STATES
   const [pageLoading, setPageLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
 
+  
+  // ---------------------------------------------------
+  // ------------ LAST SEEN TRACKING -------------------
+  // ---------------------------------------------------
+  const markConversationAsRead = useCallback(async (currentChatList = chat) => {
+    if (!conversation?.id || !user) {
+      log.warn("LAST_SEEN", "Cannot mark as read — missing conversation or user.", {
+        conversationId: conversation?.id,
+        userId: user?.id,
+      });
+      return;
+    }
+
+    if (currentChatList.length === 0) {
+      log.info("LAST_SEEN", "Chat is empty, nothing to mark as read.");
+      return;
+    }
+
+    const lastMsg = currentChatList[currentChatList.length - 1];
+    log.info("LAST_SEEN", `Updating last seen.`, {
+      conversationId: conversation.id,
+      userId: user.id,
+      lastMessageId: lastMsg.id,
+    });
+
+    setConversations((prev) =>
+      prev.map((c) => (c.id === conversation.id ? { ...c, unreadCount: 0 } : c))
+    );
+
+    try {
+      await patchConversationLastSeen(conversation.id, user.id, lastMsg.id);
+      log.info("LAST_SEEN", "Last seen updated successfully.");
+    
+    } catch (err) {
+      log.error("LAST_SEEN", "Failed to update last seen.", err);
+    }
+  }, [conversation?.id, user, chat]);
+
   // ---------------------------------------------------
   // ----------------- INIT ----------------------------
   // ---------------------------------------------------
   const fetchChatData = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      log.warn("INIT", "fetchChatData called without an authenticated user — skipping.");
+      return;
+    }
+
+    log.info("INIT", `Fetching chat data. conversationId param: ${conversationId ?? "none (public)"}`);
     setPageLoading(true);
 
-    try {    
+    try {
       let currentConv: Conversation | null = null;
 
       if (conversationId) {
+        log.info("INIT", `Resolving private conversation #${conversationId}`);
         currentConv = await getConversation(Number(conversationId));
       } else {
+        log.info("INIT", "No conversationId in URL — resolving public conversation.");
         currentConv = await getPublicConversation();
       }
-      
+
+      // Verify the resolved conversation is usable before doing anything else
       if (!currentConv?.id) {
+        log.error("INIT", "Resolved conversation has no ID.", currentConv);
         throw new Error("Target conversation context could not be resolved.");
       }
-            
+
+      log.info("INIT", `Conversation resolved.`, { id: currentConv.id, name: currentConv.name });
       setConversation(currentConv);
-      
+
       const [users, messagesPage, privateChats, privateNotifications] = await Promise.all([
         getOnlineUsers(),
         getConversationMessages(currentConv.id, 0),
-        getUserConversations(user.id),      
-        getNotifications(user.id)
+        getUserConversations(user.id),
+        getNotifications(user.id),
       ]);
 
-      const reversedChat = messagesPage.content.reverse(); // Store locally first
+      // Verify each parallel result
+      log.info("INIT", `Online users fetched: ${users.length}`);
+      log.info("INIT", `Messages fetched (page 0): ${messagesPage.content.length}`, {
+        hasMore: messagesPage.content.length >= 30,
+      });
+      log.info("INIT", `Conversations in inbox: ${privateChats.content?.length ?? 0}`);
+      log.info("INIT", `Notifications fetched: ${privateNotifications.length}`);
+
+      // Warn if expected data is empty — helps catch backend issues early
+      if (users.length === 0)               log.warn("INIT", "Online users list is empty.");
+      if (!privateChats.content?.length)    log.warn("INIT", "No conversations returned for this user.");
+      if (messagesPage.content.length === 0) log.warn("INIT", "No messages returned for this conversation on page 0.");
+
+      const reversedChat = messagesPage.content.reverse();
 
       setOnlineUsers(users);
       setConversations(privateChats.content || []);
       setChat(reversedChat);
       setNotifications(privateNotifications);
-
       setHasMore(messagesPage.content.length >= 30);
       setPage(1);
 
-      // 🌟 ADD THIS: Mark as read right after setting the chat state
+      // Mark the conversation as read immediately after loading
       if (reversedChat.length > 0) {
-        const lastMessageId = reversedChat[reversedChat.length - 1].id;
-        await putLastSeenMessageInConversationForUser(user.id, lastMessageId, currentConv.id);
+        const lastMsg = reversedChat[reversedChat.length - 1];
+
+        console.log(lastMsg)
+        log.info("LAST_SEEN", `Marking initial read. Last message ID: ${lastMsg.id}`);
+        await patchConversationLastSeen(currentConv.id, user.id, lastMsg.id);
+
+        setConversations(prev =>
+          prev.map(c =>
+            c.id === currentConv.id
+            ? { ...c, unreadCount: 0 }
+            : c
+          )
+        );
+        log.info("LAST_SEEN", "Initial read mark successful.");
+      } else {
+        log.info("LAST_SEEN", "No messages to mark as read on init.");
       }
 
     } catch (err) {
-      console.error("CHAT STORAGE INITIALIZATION ERROR:", err);
+      log.error("INIT", "Chat initialization failed.", err);
     } finally {
       setPageLoading(false);
     }
   }, [user, conversationId]);
 
   useEffect(() => {
-    if (user) {
-      fetchChatData();
-    }
+    if (user) fetchChatData();
   }, [user, conversationId, fetchChatData]);
 
-  // ---------------------------------------------------
-  // ------------ LAST SEEN TRACKING -------------------
-  // ---------------------------------------------------
-  const markConversationAsRead = useCallback(async (currentChatList = chat) => {
-    if (!conversation?.id || !user || currentChatList.length === 0) return;
-
-    // Get the ID of the newest message in the stream
-    const lastMessageId = currentChatList[currentChatList.length - 1].id;
-
-    try {
-      await putLastSeenMessageInConversationForUser(user.id, lastMessageId, conversation.id);
-
-      // Clear the local badge count in the left sidebar list
-      setConversations((prev) =>
-        prev.map((c) =>
-          c.id === conversation.id ? { ...c, unreadCount: 0 } : c
-        )
-      );
-    } catch (err) {
-      console.error("FAILED TO UPDATE LAST SEEN:", err);
-    }
-  }, [conversation?.id, user, chat]);
-
-  // Trigger read receipt update when a user refocuses the browser window
   useEffect(() => {
     const handleWindowFocus = () => {
       if (document.hasFocus()) {
+        log.info("LAST_SEEN", "Window focused — triggering read mark.");
         markConversationAsRead();
       }
     };
-
     window.addEventListener("focus", handleWindowFocus);
     return () => window.removeEventListener("focus", handleWindowFocus);
   }, [markConversationAsRead]);
@@ -140,18 +198,36 @@ export default function ChatDashboardPage() {
   // --------------- PAGINATION ------------------------
   // ---------------------------------------------------
   const loadMore = useCallback(async () => {
-    if (loadingMore || !hasMore || !conversation) return;
+    if (loadingMore) {
+      log.info("PAGINATION", "loadMore called while already loading — skipped.");
+      return;
+    }
+    if (!hasMore) {
+      log.info("PAGINATION", "No more pages to load.");
+      return;
+    }
+    if (!conversation) {
+      log.warn("PAGINATION", "loadMore called without an active conversation.");
+      return;
+    }
+
+    log.info("PAGINATION", `Loading page ${page} for conversation #${conversation.id}`);
     setLoadingMore(true);
+
     try {
       const nextPage = await getConversationMessages(conversation.id, page);
+
       if (nextPage.content.length === 0) {
+        log.info("PAGINATION", "No more messages — reached the beginning of history.");
         setHasMore(false);
         return;
       }
-      setChat((prev) => [...nextPage.content.reverse(), ...prev]);
+
+      log.info("PAGINATION", `Loaded ${nextPage.content.length} older messages.`);
+      setChat((prev) => [...[...nextPage.content].reverse(), ...prev]);
       setPage((prev) => prev + 1);
     } catch (err) {
-      console.error("LOAD MORE ERROR:", err);
+      log.error("PAGINATION", "Failed to load more messages.", err);
     } finally {
       setLoadingMore(false);
     }
@@ -159,77 +235,101 @@ export default function ChatDashboardPage() {
 
   const { containerRef, onScroll } = useChatScroll(chat, loadMore);
 
-
-  // -------------------------------------------------
-  // ---------------- SOCKET -------------------------
-  // -------------------------------------------------
+  // ---------------------------------------------------
+  // ----------------- SOCKET --------------------------
+  // ---------------------------------------------------
   useEffect(() => {
-    if (!user || !conversation) return;
+    if (!user || !conversation) {
+      log.warn("SOCKET", "Socket effect skipped — user or conversation not ready.", {
+        userId: user?.id,
+        conversationId: conversation?.id,
+      });
+      return;
+    }
+
+    log.info("SOCKET", `Subscribing to socket events for conversation #${conversation.id}`);
 
     const handleMessage = (msg: Message) => {
-      // Message belongs to the room the user is currently looking at
-      if (msg.conversationId === conversation?.id) {        
+      // Verify the incoming message has the minimum fields we rely on
+      if (!msg?.id || !msg?.conversationId) {
+        log.warn("SOCKET", "Received malformed message — ignoring.", msg);
+        return;
+      }
+
+      if (msg.conversationId === conversation.id) {
+        log.info("SOCKET", `New message in active conversation. ID: ${msg.id}`);
+
         setChat((prev) => {
           const updatedChat = [...prev, msg];
-          
-          // If window has focus, hit your route with the incoming message's ID
+
+
+
           if (document.hasFocus()) {
-            putLastSeenMessageInConversationForUser(user.id, msg.id, conversation.id)
-              .catch(err => console.error(err));
+            log.info("LAST_SEEN", `Window focused on incoming message — marking ID: ${msg.id} as seen.`);
+            patchConversationLastSeen(user.id, msg.id, conversation.id)
+              .catch((err) => log.error("LAST_SEEN", "Failed to patch last seen on incoming message.", err));
           }
-          
+
           return updatedChat;
         });
-      } else {    
-      // Update the background inbox dropdown list
-      setConversations((prev) => {
-        const exists = prev.some((c) => c.id === msg.conversationId);
-      
-        if (exists) {
-          // Find the room, increment its count, update the preview text, and push it to the top
-          const targetRoom = prev.find((c) => c.id === msg.conversationId)!;
-          const remainingRooms = prev.filter((c) => c.id !== msg.conversationId);
-        
-          return [
-            {
-              ...targetRoom,
-              unreadCount: (targetRoom.unreadCount || 0) + 1,
-              lastMessage: msg.content
-            },
-            ...remainingRooms
-          ];
-        } else {          
-          // THE ROOM IS NOT IN THE LIST: Construct a new row using the sender data from the payload
-          const newDynamicRoom: ConversationListDto = {
-            id: msg.conversationId,            
-            name: msg.sender?.username || `User #${msg.sender?.id || 'Unknown'}`,
-            lastMessage: msg.content,
-            unreadCount: 1,
-          };
+      } else {
+        log.info("SOCKET", `Message for background conversation #${msg.conversationId} — updating inbox.`);
 
-          // Put the brand new conversation at the very top of the list array
-          return [newDynamicRoom, ...prev];
-        }        
-      });
-    }
-  };
+        setConversations((prev) => {
+          const exists = prev.some((c) => c.id === msg.conversationId);
+
+          if (exists) {
+            const targetRoom = prev.find((c) => c.id === msg.conversationId)!;
+            const remaining = prev.filter((c) => c.id !== msg.conversationId);
+            return [
+              {
+                ...targetRoom,
+                unreadCount: (targetRoom.unreadCount || 0) + 1,
+                lastMessage: msg.content,
+              },
+              ...remaining,
+            ];
+          } else {
+            log.info("SOCKET", `Conversation #${msg.conversationId} not in inbox — creating new entry.`);
+            const newRoom: ConversationListDto = {
+              id: msg.conversationId,
+              name: msg.sender?.username || `User #${msg.sender?.id ?? "Unknown"}`,
+              lastMessage: msg.content,
+              unreadCount: 1,
+            };
+            return [newRoom, ...prev];
+          }
+        });
+      }
+    };
 
     const handleUserJoin = (data: any) => {
-      const newUser = data.user;
-      if (!newUser) return;
+      if (!data?.user) {
+        log.warn("SOCKET", "user_join event received with no user payload.", data);
+        return;
+      }
+      log.info("SOCKET", `User joined: ${data.user.username}`);
       setOnlineUsers((prev) => {
-        if (prev.some((u) => u.username === newUser.username)) return prev;
-        return [...prev, newUser];
+        if (prev.some((u) => u.username === data.user.username)) return prev;
+        return [...prev, data.user];
       });
     };
 
     const handleUserLeave = (data: any) => {
-      const leftUser = data.user;
-      if (!leftUser) return;
-      setOnlineUsers((prev) => prev.filter((u) => u.username !== leftUser.username));
+      if (!data?.user) {
+        log.warn("SOCKET", "user_leave event received with no user payload.", data);
+        return;
+      }
+      log.info("SOCKET", `User left: ${data.user.username}`);
+      setOnlineUsers((prev) => prev.filter((u) => u.username !== data.user.username));
     };
 
-    const handleNotification = (notif: NotificationDto) => {      
+    const handleNotification = (notif: NotificationDto) => {
+      if (!notif?.id) {
+        log.warn("SOCKET", "Received malformed notification — ignoring.", notif);
+        return;
+      }
+      log.info("SOCKET", `New notification received. ID: ${notif.id}`);
       setNotifications((prev) => [notif, ...prev]);
     };
 
@@ -239,6 +339,7 @@ export default function ChatDashboardPage() {
     subscribe("notification", handleNotification);
 
     return () => {
+      log.info("SOCKET", `Unsubscribing socket listeners for conversation #${conversation.id}`);
       unsubscribe("message", handleMessage);
       unsubscribe("user_join", handleUserJoin);
       unsubscribe("user_leave", handleUserLeave);
@@ -246,79 +347,96 @@ export default function ChatDashboardPage() {
     };
   }, [user, conversation]);
 
-
-  // -------------------------------------------------
-  // ---------------- USER LOGOUT --------------------
-  // -------------------------------------------------
+  // ---------------------------------------------------
+  // ----------------- LOGOUT -------------------------
+  // ---------------------------------------------------
   useEffect(() => {
     const handleClose = () => {
-      if (user) logoutUser(user);
+      if (user) {
+        log.info("AUTH", `Window unloading — logging out user: ${user.id}`);
+        logoutUser(user);
+      }
     };
     window.addEventListener("beforeunload", handleClose);
     return () => window.removeEventListener("beforeunload", handleClose);
   }, [user]);
 
-
-  // -------------------------------------------------
-  // ---------------- MESSAGE SENDING ----------------
-  // -------------------------------------------------
-
+  // ---------------------------------------------------
+  // --------------- MESSAGE SEND ---------------------
+  // ---------------------------------------------------
   const handleSend = async () => {
-    if (!canSend || !conversation || !user) return;
+    if (!canSend) {
+      log.warn("SEND", "handleSend called with nothing to send.");
+      return;
+    }
+    if (!conversation || !user) {
+      log.warn("SEND", "handleSend called without conversation or user context.", {
+        conversationId: conversation?.id,
+        userId: user?.id,
+      });
+      return;
+    }
+
+    log.info("SEND", `Sending message to conversation #${conversation.id}`, {
+      hasText: text.trim().length > 0,
+      fileCount: selectedFiles.length,
+    });
+
     try {
       await sendMessage(user.id, conversation.id, text, selectedFiles);
       setText("");
       setSelectedFiles([]);
+      log.info("SEND", "Message sent successfully.");
     } catch (err) {
-      console.error("SEND MESSAGE ERROR:", err);
+      log.error("SEND", "Failed to send message.", err);
     }
   };
 
-  // Auth Guard Component Frame Layout Breakout
+  // ---------------------------------------------------
+  // --------------- RENDER GUARDS --------------------
+  // ---------------------------------------------------
   if (loading || !user) {
     return <div className={styles.appSpinnerView}>Synchronizing authorization session tokens...</div>;
   }
-  
-  // Dashboard Workspace Component Loading Breakout Guard
+
   if (pageLoading) {
     return <div className={styles.appSpinnerView}>Loading chat resources and historical frames...</div>;
   }
 
   return (
     <div className={styles.masterWrapper}>
-      {/* TOP NAV CONTROLS FOR CHATS & NOTIFICATION ACTIONS */}
-      <TopMenu 
-        user={user} 
-        conversations={conversations} 
+      <TopMenu
+        user={user}
+        conversations={conversations}
         notifications={notifications}
-        onNotificationRead={(targetId) => {          
+        onNotificationRead={(targetId) => {
           setNotifications((prev) =>
-          prev.map((n) => (n.id === targetId ? { ...n, status: "OPENED" } : n))
+            prev.map((n) => (n.id === targetId ? { ...n, status: "OPENED" } : n))
           );
         }}
       />
 
       <div className={styles.container}>
-        {/* SIDEBAR */}
-        <Sidebar 
-          user={user}        
+        <Sidebar
+          user={user}
           onlineUsers={onlineUsers}
           onRefresh={fetchChatData}
-          className={styles.sidebar}        
+          className={styles.sidebar}
         />
-        
-        {/* DISPLAY PANEL STREAM */}
+
         <div className={styles.chatSection}>
           <div className={styles.activeChannelBanner}>
             {conversationId ? (
-              <span>🔒 Private Chat with <strong>@{conversation?.name || "Loading Context..."}</strong></span>
+              <span><strong>@{conversation?.name || "Loading Context..."}</strong></span>
             ) : (
               <span>🌐 Public Global Chatroom Arena</span>
             )}
           </div>
 
-          {loadingMore && <div className={styles.loadingMoreIndicator}>Fetching previous history layers...</div>}
-          
+          {loadingMore && (
+            <div className={styles.loadingMoreIndicator}>Fetching previous history layers...</div>
+          )}
+
           <div className={styles.chatMessages}>
             <Chat
               currentUser={user}
@@ -331,13 +449,13 @@ export default function ChatDashboardPage() {
           <div className={styles.chatInput}>
             <MessageInput
               text={text}
-              files={selectedFiles} 
+              files={selectedFiles}
               canSend={canSend}
               onTextChange={setText}
               onFileSelect={setSelectedFiles}
               onSend={handleSend}
             />
-          </div>               
+          </div>
         </div>
       </div>
     </div>

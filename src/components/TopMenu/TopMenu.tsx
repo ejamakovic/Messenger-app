@@ -49,7 +49,7 @@ export default function TopMenu({ user, conversations, notifications, onNotifica
     <header className={styles.topMenu} ref={menuRef}>
       <div className={styles.logoSection} onClick={() => navigate("/chat/public")}>
         <Globe className={styles.logoIcon} size={20} />
-        <span className={styles.logoTitle}>ChatSphere</span>
+        <span className={styles.logoTitle}>Piši briši</span>
       </div>
           
       <div className={styles.actionControls}>
