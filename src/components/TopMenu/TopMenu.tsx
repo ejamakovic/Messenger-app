@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, MessageSquare, LogOut, Globe, User } from "lucide-react"; 
+import { Bell, MessageSquare, LogOut, Globe, User, Check, X } from "lucide-react"; // Imported Check and X icons
 import { logoutUser } from "../../services/user.service";
 import type { UserModel } from "../../models/user";
 import styles from "./TopMenu.module.css";
@@ -8,6 +8,7 @@ import type { ConversationListDto } from "../../models/conversationListDto";
 import type { NotificationDto } from "../../models/notification";
 import ThemeToggle from "../ThemeToggle/ThemeToggle";
 import { putNotificationStatus } from "../../services/notification.service";
+import { updateFriendshipStatus } from "../../services/friendship.service";
 
 interface TopMenuProps {
   user: UserModel;
@@ -36,13 +37,23 @@ export default function TopMenu({ user, conversations, notifications, onNotifica
   }, []);
 
   const unreadNotifCount = notifications.filter(n => n.status !== "OPENED").length;
-  
-  // Count conversations that have an active unread count flag attached
   const activeChatsCount = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
 
   const handleConversationSelect = (id: number) => {
     setShowChatsDropdown(false);
     navigate(`/chat/conversation/${id}`);
+  };
+  
+  const handleFriendshipResponse = async (e: React.MouseEvent, notifId: number, friendshipId: number, status: "ACCEPTED" | "REJECTED") => {
+    e.stopPropagation(); // ⚡ Keeps row container click from executing!
+    try {
+      await updateFriendshipStatus(friendshipId, status);
+            
+      await putNotificationStatus(notifId, "OPENED");
+      onNotificationRead(notifId);
+    } catch (err) {
+      console.error(`Failed to ${status.toLowerCase()} friendship status:`, err);
+    }
   };
 
   return (
@@ -53,7 +64,6 @@ export default function TopMenu({ user, conversations, notifications, onNotifica
       </div>
           
       <div className={styles.actionControls}>
-        {/* PUBLIC CHAT SHORTCUT LINK */}
         <button 
           className={styles.actionIconBtn} 
           onClick={() => { navigate("/chat/public"); setShowChatsDropdown(false); setShowNotifDropdown(false); }} 
@@ -62,7 +72,6 @@ export default function TopMenu({ user, conversations, notifications, onNotifica
           <Globe size={18} />
         </button>
 
-        {/* ALL ACTIVE CHATS / INBOX DROPDOWN */}
         <div className={styles.dropdownWrapper}>
           <button 
             className={`${styles.actionIconBtn} ${showChatsDropdown ? styles.activeBtnState : ""}`}
@@ -98,7 +107,6 @@ export default function TopMenu({ user, conversations, notifications, onNotifica
                           {conv.lastMessage || "Click to open chat panel..."}
                         </p>
                       </div>
-                      {/* Dynamic unread row dot highlight */}
                       {conv.unreadCount && conv.unreadCount > 0 ? (
                         <span className={styles.rowUnreadDotCount}>{conv.unreadCount}</span>
                       ) : null}
@@ -110,7 +118,6 @@ export default function TopMenu({ user, conversations, notifications, onNotifica
           )}
         </div>
 
-        {/* SYSTEM & MESSAGE NOTIFICATIONS DROPDOWN */}
         <div className={styles.dropdownWrapper}>
           <button 
             className={`${styles.actionIconBtn} ${showNotifDropdown ? styles.activeBtnState : ""}`}
@@ -132,33 +139,61 @@ export default function TopMenu({ user, conversations, notifications, onNotifica
                 {notifications.length === 0 ? (
                   <p className={styles.emptyText}>All caught up! 🎉</p>
                 ) : (
-                  notifications.map((notif) => (
-                    <div 
-                      key={notif.id} 
-                      className={`${styles.dropdownItemRow} ${notif.status !== "OPENED" ? styles.unreadAlertHighlight : ""}`}
-                      onClick={async () => {
-                        try {              
-                          await putNotificationStatus(notif.id, "OPENED");
-                                  
-                          onNotificationRead(notif.id);
-                        } catch (err) {
-                          console.error("Failed to update notification status:", err);
-                      }
-                    }}
-                    >
-                      <p className={styles.notificationContentText}>{notif.content}</p>
-                    </div>
-                  ))
+                  notifications.map((notif) => {
+                    // Check if notification relates to a friend request
+                    const isFriendRequest = notif.notificationType === "FRIEND_REQUEST"; 
+
+                    return (
+                      <div 
+                        key={notif.id} 
+                        className={`${styles.dropdownItemRow} ${notif.status !== "OPENED" ? styles.unreadAlertHighlight : ""}`}
+                        onClick={async () => {
+                          
+                          if (isFriendRequest) return; 
+                          try {              
+                            await putNotificationStatus(notif.id, "OPENED");
+                            onNotificationRead(notif.id);
+                          } catch (err) {
+                            console.error("Failed to update notification status:", err);
+                          }
+                        }}
+                      >
+                        <div className={styles.notificationContentBlock}>
+                          <p className={styles.notificationContentText}>{notif.content}</p>
+                          
+                          {/* ACTIONABLE BUTTONSET FOR FRIEND REQUESTS */}
+                          {isFriendRequest && notif.status !== "OPENED" && (
+                            <div className={styles.friendshipActionContainer}>
+                              <button 
+                                className={`${styles.inlineActionBtn} ${styles.acceptBtn}`}
+                                onClick={(e) => handleFriendshipResponse(e, notif.id, notif.referenceId, "ACCEPTED")}
+                                title="Prihvati"
+                              >
+                                <Check size={14} />
+                                <span>Prihvati</span>
+                              </button>
+                              <button 
+                                className={`${styles.inlineActionBtn} ${styles.rejectBtn}`}
+                                onClick={(e) => handleFriendshipResponse(e, notif.id, notif.referenceId, "REJECTED")}
+                                title="Odbij"
+                              >
+                                <X size={14} />
+                                <span>Odbij</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
                 )}
               </div>
-                
             </div>
           )}
         </div>
 
         <div className={styles.divider} />
 
-        {/* PROFILE BLOCK */}
         <div className={styles.userProfileSegment}>
           <div className={styles.userBadgeAvatar}>
             <User size={13} className={styles.profileUserIcon} />
@@ -170,7 +205,7 @@ export default function TopMenu({ user, conversations, notifications, onNotifica
         </div>        
       </div>      
       <div className={styles.actionControls}>
-          <ThemeToggle /> {/* 👈 Right here! */}
+        <ThemeToggle />
         <div className={styles.divider} />        
       </div>
     </header>

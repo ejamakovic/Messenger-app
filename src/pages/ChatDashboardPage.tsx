@@ -155,8 +155,7 @@ export default function ChatDashboardPage() {
       // Mark the conversation as read immediately after loading
       if (reversedChat.length > 0) {
         const lastMsg = reversedChat[reversedChat.length - 1];
-
-        console.log(lastMsg)
+        
         log.info("LAST_SEEN", `Marking initial read. Last message ID: ${lastMsg.id}`);
         await patchConversationLastSeen(currentConv.id, user.id, lastMsg.id);
 
