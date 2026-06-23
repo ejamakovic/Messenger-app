@@ -1,16 +1,31 @@
+// App.tsx
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-// 1. Import ONLY the single, unified page component
-import ChatDashboardPage from "./pages/ChatDashboardPage"; 
+import ChatDashboardPage from "./pages/Main/ChatDashboardPage"; 
+import AuthPage from "./pages/Auth/AuthPage"; 
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { SocketProvider } from "./context/SocketContext";
 
 function AppRoutes() {
-  const { loading } = useAuth();
+  // Grab both loading and user states from your context
+  const { user, loading } = useAuth();
 
   if (loading) {
     return <div>Loading...</div>;
   }
 
+  // ─── GATEWAY PROTECTION ──────────────────────────────────────────────────  
+  if (!user) {
+    return (
+      <BrowserRouter>
+        <Routes>
+          {/* Catch any route path and serve the Auth page if unauthorized */}
+          <Route path="*" element={<AuthPage />} />
+        </Routes>
+      </BrowserRouter>
+    );
+  }
+
+  // ─── PROTECTED CHAT APPLICATION ROUTES ──────────────────────────────────
   return (
     <BrowserRouter>
       <Routes>       
@@ -18,6 +33,8 @@ function AppRoutes() {
         <Route path="/chat/public" element={<ChatDashboardPage />} />                    
         <Route path="/chat/conversation/:conversationId" element={<ChatDashboardPage />} />          
         <Route path="/chat/user/:receiverUsername" element={<ChatDashboardPage />} />
+        {/* Optional fallback: if they type a random URL while logged in, go home */}
+        <Route path="*" element={<ChatDashboardPage />} />
       </Routes>
     </BrowserRouter>
   );

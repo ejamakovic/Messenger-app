@@ -1,29 +1,44 @@
+// AuthContext.tsx
 import { createContext, useContext, useEffect, useState } from "react";
-import { login, type AuthResponse } from "../services/jwt.service";
-import type { AuthContextType } from "../models/authContext";
 import type { UserModel } from "../models/user";
+
+type AuthContextType = {
+  user: UserModel | null;
+  token: string | null;
+  loading: boolean;
+  saveSession: (user: UserModel, token: string) => void;
+  clearSession: () => void;
+};
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   token: null,
   loading: true,
+  saveSession: () => {},
+  clearSession: () => {},
 });
 
-const createUsername = () => {
-  return `USER-${Math.random().toString(36).slice(2, 10)}`;
-};
-
-export const AuthProvider = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<UserModel | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const saveSession = (newUser: UserModel, newToken: string) => {
+    setUser(newUser);
+    setToken(newToken);
+    sessionStorage.setItem("user", JSON.stringify(newUser));
+    sessionStorage.setItem("token", newToken);
+  };
+
+  const clearSession = () => {
+    setUser(null);
+    setToken(null);
+    sessionStorage.removeItem("user");
+    sessionStorage.removeItem("token");
+  };
+
   useEffect(() => {
-    const initAuth = async () => {
+    const initAuth = () => {
       try {        
         const storedUser = sessionStorage.getItem("user");
         const storedToken = sessionStorage.getItem("token");
@@ -31,23 +46,10 @@ export const AuthProvider = ({
         if (storedUser && storedToken) {
           setUser(JSON.parse(storedUser));
           setToken(storedToken);
-          return;
         }
-        
-        const username = createUsername();
-
-        const res: AuthResponse = await login(username);
-
-        setUser(res.user);
-        setToken(res.token);
-
-        sessionStorage.setItem("user", JSON.stringify(res.user));
-        sessionStorage.setItem("token", res.token);
       } catch (error) {
-        console.error("AUTH ERROR:", error);
-
-        sessionStorage.removeItem("user");
-        sessionStorage.removeItem("token");
+        console.error("AUTH INIT ERROR:", error);
+        clearSession();
       } finally {
         setLoading(false);
       }
@@ -57,13 +59,7 @@ export const AuthProvider = ({
   }, []);
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token,
-        loading,
-      }}
-    >
+    <AuthContext.Provider value={{ user, token, loading, saveSession, clearSession }}>
       {children}
     </AuthContext.Provider>
   );

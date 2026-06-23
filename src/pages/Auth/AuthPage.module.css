@@ -1,0 +1,108 @@
+/* AuthPage.module.css */
+
+.authWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100svh;
+  width: 100%;
+  background-color: var(--bg);
+  animation: fadeSlideIn 0.25s ease both;
+}
+
+.authCard {
+  width: 100%;
+  max-width: 420px;
+  padding: 32px;
+  background-color: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: var(--shadow);
+  text-align: left;
+}
+
+.authCard h2 {
+  color: var(--text-h);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-bottom: 24px;
+}
+
+.errorBanner {
+  padding: 10px 14px;
+  background-color: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 4px;
+  font-size: 0.82rem;
+  color: var(--text-h);
+  font-family: var(--mono);
+  margin-bottom: 20px;
+}
+
+.inputGroup {
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.inputGroup label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+
+.inputGroup input {
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  background-color: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-h);
+  transition: border-color 0.15s ease;
+}
+
+.inputGroup input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.submitBtn {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #fff;
+  background-color: var(--accent);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.submitBtn:hover {
+  opacity: 0.9;
+}
+
+.switchModeBtn {
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 0.82rem;
+  margin-top: 20px;
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+  transition: color 0.15s ease;
+}
+
+.switchModeBtn:hover {
+  color: var(--accent);
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

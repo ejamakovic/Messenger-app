@@ -1,4 +1,27 @@
 /* MessageInput.module.css */
+
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes badgePop {
+  0%   { transform: scale(0.6); opacity: 0; }
+  70%  { transform: scale(1.12); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes sendPulse {
+  0%   { box-shadow: 0 0 0 0 var(--accent-border); }
+  70%  { box-shadow: 0 0 0 8px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
 .outerWrapper {
   display: flex;
   flex-direction: column;
@@ -6,12 +29,13 @@
   background: var(--code-bg);
   border-top: 1px solid var(--border);
   box-sizing: border-box;
+  animation: slideUpFade 0.3s ease both;
 }
 
 .container {
-  padding: 12px 24px 16px 24px;
+  padding: 12px 20px 14px 20px;
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
   width: 100%;
   box-sizing: border-box;
@@ -23,43 +47,83 @@
 
 .attachButton {
   background: none;
-  border: none;
+  border: 1px solid transparent;
   color: var(--text);
   cursor: pointer;
-  padding: 10px;
+  padding: 9px;
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+  flex-shrink: 0;
 }
 
 .attachButton:hover {
-  background-color: var(--border);
-  color: var(--text-h);
+  background-color: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent);
+  transform: rotate(15deg) scale(1.05);
+}
+
+.attachButton:active {
+  transform: rotate(0deg) scale(0.95);
+}
+
+.inputWrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.inputWrapper::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 13px;
+  background: linear-gradient(90deg, var(--accent), var(--border), var(--accent));
+  background-size: 200% auto;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 0;
+}
+
+.inputWrapper:focus-within::before {
+  opacity: 1;
+  animation: shimmer 2s linear infinite;
 }
 
 .input {
   flex: 1;
-  padding: 12px 16px;
+  padding: 11px 16px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--bg);
   color: var(--text-h);
   font-family: var(--sans);
   font-size: 0.95rem;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .input::placeholder {
   color: var(--text);
-  opacity: 0.6;
+  opacity: 0.5;
+  transition: opacity 0.2s ease;
 }
 
 .input:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 4px var(--accent-bg);
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+}
+
+.input:focus::placeholder {
+  opacity: 0.3;
 }
 
 .button {
@@ -67,38 +131,54 @@
   height: 42px;
   border: none;
   background: var(--accent);
-  color: var(--bg); 
+  color: var(--bg);
   border-radius: 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: transform 0.15s ease, opacity 0.2s ease, box-shadow 0.2s ease;
   flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.15);
+  opacity: 0;
+  transition: opacity 0.15s ease;
 }
 
 .button:hover:not(:disabled) {
-  opacity: 0.9;
-  transform: translateY(-1px);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 20px var(--accent-border);
 }
 
-.button:active {
-  transform: translateY(0);
+.button:hover:not(:disabled)::after {
+  opacity: 1;
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(0) scale(0.96);
+  animation: sendPulse 0.4s ease;
 }
 
 .button:disabled {
   background-color: var(--border);
   color: var(--text);
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
+  transform: none;
 }
 
 .fileList {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 12px 24px 0 24px;
-  text-align: left;
+  padding: 8px 20px 0 20px;
 }
 
 .fileBadge {
@@ -106,13 +186,25 @@
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  background-color: var(--bg);
-  border: 1px solid var(--border);
+  background-color: var(--accent-bg);
+  border: 1px solid var(--accent-border);
   border-radius: 6px;
   color: var(--accent);
   font-family: var(--mono);
   font-size: 0.75rem;
   max-width: 200px;
+  animation: badgePop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.fileBadge:hover {
+  background-color: var(--accent);
+  color: var(--bg);
+  transform: translateY(-1px);
+}
+
+.fileBadge:hover .fileName {
+  color: var(--bg);
 }
 
 .fileName {
@@ -120,4 +212,5 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: color 0.15s ease;
 }

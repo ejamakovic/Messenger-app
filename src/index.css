@@ -10,7 +10,7 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  /* 🛠️ STRUCTURAL LAYOUT DEFAULT TOKENS (For standard centered pages) */
+  /* STRUCTURAL LAYOUT DEFAULT TOKENS (For standard centered pages) */
   --root-width: 1126px;
   --root-max-width: 100%;
   --root-margin: 0 auto;
@@ -22,7 +22,7 @@
   }
 }
 
-/* ☀️ BRIGHT / LIGHT THEME STATE */
+/* BRIGHT / LIGHT THEME STATE */
 :root, html.light {
   color-scheme: light;
   --text: #6b6375;
@@ -42,7 +42,7 @@
   --sidebar-hover: #f4f3ec;
 }
 
-/* 🌙 DARK THEME STATE */
+/* DARK THEME STATE */
 html.dark {
   color-scheme: dark;
   --text: #9ca3af;
@@ -69,7 +69,7 @@ body {
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-/* 🏗️ STRUCTURAL CONTAINER ASSIGNMENTS */
+/* STRUCTURAL CONTAINER ASSIGNMENTS */
 #root {
   width: var(--root-width);
   max-width: var(--root-max-width);

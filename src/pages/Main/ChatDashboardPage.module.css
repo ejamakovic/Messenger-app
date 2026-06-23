@@ -1,0 +1,167 @@
+  /* ChatDashboardPage.module.css */
+
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes spinnerPulse {
+    0%, 100% { opacity: 0.4; transform: scale(0.95); }
+    50%       { opacity: 1;   transform: scale(1); }
+  }
+
+  @keyframes progressBar {
+    0%   { width: 0%; opacity: 0.6; }
+    60%  { width: 75%; opacity: 1; }
+    100% { width: 100%; opacity: 0; }
+  }
+
+  @keyframes bannerReveal {
+    from { opacity: 0; transform: translateX(-8px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes loadingMoreSlide {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .masterWrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border: none !important;
+    background-color: var(--bg);
+    overflow: hidden;
+    animation: fadeSlideIn 0.25s ease both;
+  }
+
+  .container {
+    display: flex;
+    flex: 1;
+    width: 100%;
+    background-color: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+  }
+
+  .sidebar {
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    transition: width 0.25s ease;
+  }
+
+  .chatSection {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    background-color: var(--bg);
+    min-width: 0;
+  }
+
+  .activeChannelBanner {
+    padding: 14px 24px;
+    background-color: var(--code-bg);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.88rem;
+    color: var(--text);
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: bannerReveal 0.3s ease both;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .activeChannelBanner::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    background: var(--accent);
+    animation: progressBar 1.2s ease forwards;
+  }
+
+  .activeChannelBanner strong {
+    color: var(--text-h);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .chatMessages {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* SPINNER / LOADING VIEWS */
+  .appSpinnerView {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100vw;
+    gap: 16px;
+    background-color: var(--bg);
+    animation: spinnerPulse 1.8s ease-in-out infinite;
+  }
+
+  .appSpinnerView::before {
+    content: "";
+    width: 32px;
+    height: 32px;
+    border: 2.5px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .appSpinnerView {
+    font-size: 0.88rem;
+    color: var(--text);
+    font-family: var(--mono);
+    letter-spacing: 0.02em;
+  }
+
+  .loadingMoreIndicator {
+    text-align: center;
+    padding: 8px 16px;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--accent);
+    background: linear-gradient(
+      to bottom,
+      var(--accent-bg),
+      transparent
+    );
+    border-bottom: 1px solid var(--accent-border);
+    animation: loadingMoreSlide 0.2s ease both;
+    position: relative;
+  }
+
+  .loadingMoreIndicator::before {
+    content: "";
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border: 1.5px solid var(--accent-border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin-right: 8px;
+    vertical-align: middle;
+  }

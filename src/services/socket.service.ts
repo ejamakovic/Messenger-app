@@ -1,3 +1,4 @@
+// socket.service.ts
 let socket: WebSocket | null = null
 
 type SocketEvent =
@@ -45,17 +46,23 @@ export const connectSocket = (token: string) => {
   }
 
 socket.onmessage = (event) => {
-  const { type, ...payload } = JSON.parse(event.data)
+  try {
+    const rawData = JSON.parse(event.data);
+    const { type, ...payload } = rawData;
 
-  const eventListeners = listeners[type as SocketEvent]
+    const eventListeners = listeners[type as SocketEvent];
 
-  if (!eventListeners) {
-    console.log("UNKNOWN EVENT:", type)
-    return
+    if (!eventListeners) {
+      console.log("UNKNOWN EVENT TYPE:", type);
+      return;
+    }
+
+    // payload contains exactly { id, conversationId, sender, content, timestamp, attachments }
+    eventListeners.forEach((listener) => listener(payload));
+  } catch (err) {
+    console.error("Failed to parse incoming socket message framework:", err);
   }
-
-  eventListeners.forEach((listener) => listener(payload))
-}
+};
 
   return socket
 }

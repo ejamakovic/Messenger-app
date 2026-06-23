@@ -1,25 +1,27 @@
+// ChatDashboardPage.tsx
+
 import styles from "./ChatDashboardPage.module.css";
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import MessageInput from "../components/MessageInput/MessageInput";
-import Chat from "../components/Chat/Chat";
-import Sidebar from "../components/Sidebar/Sidebar";
-import TopMenu from "../components/TopMenu/TopMenu";
+import MessageInput from "../../components/MessageInput/MessageInput";
+import Chat from "../../components/Chat/Chat";
+import Sidebar from "../../components/Sidebar/Sidebar";
+import TopMenu from "../../components/TopMenu/TopMenu";
 
-import { subscribe, unsubscribe } from "../services/socket.service";
-import { getOnlineUsers, logoutUser } from "../services/user.service";
-import { getConversationMessages, sendMessage } from "../services/message.service";
-import { getUserConversations, getConversation, getPublicConversation, patchConversationLastSeen } from "../services/conversation.service";
+import { subscribe, unsubscribe } from "../../services/socket.service";
+import { getOnlineUsers, logoutUser } from "../../services/user.service";
+import { getConversationMessages, sendMessage } from "../../services/message.service";
+import { getUserConversations, getConversation, getPublicConversation, patchConversationLastSeen } from "../../services/conversation.service";
 
-import type { UserModel } from "../models/user";
-import type { Message } from "../models/message";
-import type { Conversation } from "../models/conversation";
-import type { ConversationListDto } from "../models/conversationListDto";
-import type { NotificationDto } from "../models/notification";
+import type { UserModel } from "../../models/user";
+import type { Message } from "../../models/message";
+import type { Conversation } from "../../models/conversation";
+import type { ConversationListDto } from "../../models/conversationListDto";
+import type { NotificationDto } from "../../models/notification";
 
-import { useChatScroll } from "../hook/useChatScroll";
-import { useAuth } from "../context/AuthContext";
-import { getNotifications } from "../services/notification.service";
+import { useChatScroll } from "../../hook/useChatScroll";
+import { useAuth } from "../../context/AuthContext";
+import { getNotifications } from "../../services/notification.service";
 
 // ─── Dev logger ────────────────────────────────────────────────────────────────
 // All console output is gated behind this flag.
