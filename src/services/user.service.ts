@@ -6,11 +6,6 @@ export const getOnlineUsers = async (): Promise<UserModel[]> => {
   return res.data
 }
 
-export const registerUser = async (currentUser: UserModel): Promise<UserModel> => {
-  const res = await api.post("/users", currentUser)
-  return res.data
-}
-
 export const logoutUser = async (currentUser: UserModel): Promise<void> => {
-  await api.post("/users/logout", currentUser)
+  await api.patch("/users/logout", currentUser)
 }

@@ -323,14 +323,15 @@ export default function ChatDashboardPage() {
       setOnlineUsers((prev) => prev.filter((u) => u.username !== data.user.username));
     };
 
-    const handleNotification = (notif: NotificationDto) => {
-      if (!notif?.id) {
-        log.warn("SOCKET", "Received malformed notification — ignoring.", notif);
-        return;
-      }
-      log.info("SOCKET", `New notification received. ID: ${notif.id}`);
-      setNotifications((prev) => [notif, ...prev]);
-    };
+  const handleNotification = (notif: NotificationDto) => {
+    if (!notif?.id) {
+      log.warn("SOCKET", "Received malformed notification — ignoring.", notif);
+      return;
+    }
+    log.info("SOCKET", `New notification received. ID: ${notif.id}`);
+    setNotifications((prev) => [notif, ...prev]);  // this updates TopMenu automatically
+  };
+
 
     subscribe("message", handleMessage);
     subscribe("user_join", handleUserJoin);
@@ -345,20 +346,6 @@ export default function ChatDashboardPage() {
       unsubscribe("notification", handleNotification);
     };
   }, [user, conversation]);
-
-  // ---------------------------------------------------
-  // ----------------- LOGOUT -------------------------
-  // ---------------------------------------------------
-  useEffect(() => {
-    const handleClose = () => {
-      if (user) {
-        log.info("AUTH", `Window unloading — logging out user: ${user.id}`);
-        logoutUser(user);
-      }
-    };
-    window.addEventListener("beforeunload", handleClose);
-    return () => window.removeEventListener("beforeunload", handleClose);
-  }, [user]);
 
   // ---------------------------------------------------
   // --------------- MESSAGE SEND ---------------------

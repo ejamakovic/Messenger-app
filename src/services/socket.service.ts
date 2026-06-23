@@ -44,24 +44,18 @@ export const connectSocket = (token: string) => {
     console.error("SOCKET ERROR", err)
   }
 
-  socket.onmessage = (event) => {
+socket.onmessage = (event) => {
+  const { type, ...payload } = JSON.parse(event.data)
 
-    const data = JSON.parse(event.data) as {
-      type: SocketEvent
-      [key: string]: any
-    }
+  const eventListeners = listeners[type as SocketEvent]
 
-    const eventListeners = listeners[data.type]
-
-    if (!eventListeners) {
-      console.log("UNKNOWN EVENT:", data.type)
-      return
-    }
-
-    eventListeners.forEach((listener) => {
-      listener(data)
-    })
+  if (!eventListeners) {
+    console.log("UNKNOWN EVENT:", type)
+    return
   }
+
+  eventListeners.forEach((listener) => listener(payload))
+}
 
   return socket
 }

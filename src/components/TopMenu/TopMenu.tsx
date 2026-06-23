@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, MessageSquare, LogOut, Globe, User, Check, X } from "lucide-react"; // Imported Check and X icons
+import { Bell, MessageSquare, LogOut, Globe, User, Check, X } from "lucide-react"; 
 import { logoutUser } from "../../services/user.service";
 import type { UserModel } from "../../models/user";
 import styles from "./TopMenu.module.css";
@@ -45,14 +45,26 @@ export default function TopMenu({ user, conversations, notifications, onNotifica
   };
   
   const handleFriendshipResponse = async (e: React.MouseEvent, notifId: number, friendshipId: number, status: "ACCEPTED" | "REJECTED") => {
-    e.stopPropagation(); // ⚡ Keeps row container click from executing!
+    e.stopPropagation(); 
     try {
       await updateFriendshipStatus(friendshipId, status);
-            
       await putNotificationStatus(notifId, "OPENED");
       onNotificationRead(notifId);
     } catch (err) {
       console.error(`Failed to ${status.toLowerCase()} friendship status:`, err);
+    }
+  };
+
+  // LOGOUT HANDLER FUNCTION
+  const handleLogoutClick = async () => {
+    try {      
+      await logoutUser(user);
+    } catch (err) {
+      console.error("Backend state logout sync failed:", err);
+    } finally {      
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("user");        
+      window.location.reload();
     }
   };
 
@@ -140,7 +152,6 @@ export default function TopMenu({ user, conversations, notifications, onNotifica
                   <p className={styles.emptyText}>All caught up! 🎉</p>
                 ) : (
                   notifications.map((notif) => {
-                    // Check if notification relates to a friend request
                     const isFriendRequest = notif.notificationType === "FRIEND_REQUEST"; 
 
                     return (
@@ -148,7 +159,6 @@ export default function TopMenu({ user, conversations, notifications, onNotifica
                         key={notif.id} 
                         className={`${styles.dropdownItemRow} ${notif.status !== "OPENED" ? styles.unreadAlertHighlight : ""}`}
                         onClick={async () => {
-                          
                           if (isFriendRequest) return; 
                           try {              
                             await putNotificationStatus(notif.id, "OPENED");
@@ -199,7 +209,8 @@ export default function TopMenu({ user, conversations, notifications, onNotifica
             <User size={13} className={styles.profileUserIcon} />
             <span className={styles.profileUsername}>@{user.username}</span>
           </div>
-          <button className={styles.logoutActionButton} onClick={() => logoutUser(user)} title="Log Out">
+          {/* Updated Action Pointer Event to local method */}
+          <button className={styles.logoutActionButton} onClick={handleLogoutClick} title="Log Out">
             <LogOut size={15} />
           </button>
         </div>        
