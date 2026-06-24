@@ -1,10 +1,9 @@
-// Chat.ts
+// Chat.tsx
 import styles from "./Chat.module.css";
 import type { Message } from "../../models/message";
 import type { UserModel } from "../../models/user";
-import { API_URL } from "../../services/api";
 import { useState, useEffect } from "react";
-import axios from "axios";
+import { fetchSecureAttachmentBlob, buildAttachmentUrl } from "../../services/attachments.service";
 
 type Props = {
   currentUser: UserModel;
@@ -13,27 +12,26 @@ type Props = {
   onScroll: () => void;
 };
 
-type PreviewState = { url: string; type: "image" | "video" } | null;
+interface SecureMediaProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+  src: string; // Force src to be a required string
+}
 
 // ── SECURE IMAGE HELPER ──
-function SecureImage({ src, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
+function SecureImage({ src, ...props }: SecureMediaProps) {
   const [imageSrc, setImageSrc] = useState<string>("");
-
+  
   useEffect(() => {
-    if (!src) return;
-    // For pending/blob/data URLs, skip axios fetch
-    if (src.startsWith("blob:") || src.startsWith("data:")) {
-      setImageSrc(src);
-      return;
-    }
-
     let objectUrl = "";
-    axios.get(src, { responseType: "blob" })
-      .then((response) => {
-        objectUrl = URL.createObjectURL(response.data);
-        setImageSrc(objectUrl);
+    
+    fetchSecureAttachmentBlob(src)
+      .then((localUrl) => {
+        // Track the created url context if it's a freshly minted object blob
+        if (localUrl.startsWith("blob:") && localUrl !== src) {
+          objectUrl = localUrl;
+        }
+        setImageSrc(localUrl);
       })
-      .catch((err) => console.error("Failed to load secure image", err));
+      .catch((err) => console.error("Failed to map secure image source link", err));
 
     return () => {
       if (objectUrl) URL.revokeObjectURL(objectUrl);
@@ -44,24 +42,25 @@ function SecureImage({ src, ...props }: React.ImgHTMLAttributes<HTMLImageElement
   return <img src={imageSrc} {...props} alt="Secure attachment" />;
 }
 
+interface SecureVideoProps extends React.VideoHTMLAttributes<HTMLVideoElement> {
+  src: string; // Force src to be a required string
+}
+
 // ── SECURE VIDEO HELPER ──
-function SecureVideo({ src, ...props }: React.VideoHTMLAttributes<HTMLVideoElement>) {
+function SecureVideo({ src, ...props }: SecureVideoProps) {
   const [videoSrc, setVideoSrc] = useState<string>("");
-
+  
   useEffect(() => {
-    if (!src) return;
-    if (src.startsWith("blob:") || src.startsWith("data:")) {
-      setVideoSrc(src);
-      return;
-    }
-
     let objectUrl = "";
-    axios.get(src, { responseType: "blob" })
-      .then((response) => {
-        objectUrl = URL.createObjectURL(response.data);
-        setVideoSrc(objectUrl);
+
+    fetchSecureAttachmentBlob(src)
+      .then((localUrl) => {
+        if (localUrl.startsWith("blob:") && localUrl !== src) {
+          objectUrl = localUrl;
+        }
+        setVideoSrc(localUrl);
       })
-      .catch((err) => console.error("Failed to load secure video", err));
+      .catch((err) => console.error("Failed to map secure video source link", err));
 
     return () => {
       if (objectUrl) URL.revokeObjectURL(objectUrl);
@@ -75,20 +74,31 @@ function SecureVideo({ src, ...props }: React.VideoHTMLAttributes<HTMLVideoEleme
     </video>
   );
 }
+// Add this definition right here:
+type PreviewState = { url: string; type: "image" | "video" } | null;
 
 // ── MAIN PUBLIC CHAT COMPONENT ──
 export default function PublicChat({ currentUser, messages, containerRef, onScroll }: Props) {
   const [preview, setPreview] = useState<PreviewState>(null);
   
-  // DOWNLOAD LOGIC
-  const handleDownload = (url: string) => {
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', url.split('/').pop() || 'file');
-    link.target = "_blank"; 
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+  // SECURE DOWNLOAD HANDLER
+  const handleDownload = async (url: string) => {
+    try {
+      const downloadUrl = await fetchSecureAttachmentBlob(url);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.setAttribute('download', url.split('/').pop() || 'download-asset');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      // Clean up the temporary download blob if we generated a new one
+      if (downloadUrl.startsWith("blob:") && downloadUrl !== url) {
+        URL.revokeObjectURL(downloadUrl);
+      }
+    } catch (err) {
+      console.error("Failed executing secure download channel", err);
+    }
   };
 
   useEffect(() => {
@@ -122,12 +132,8 @@ export default function PublicChat({ currentUser, messages, containerRef, onScro
                   const isVideo = att.fileType?.startsWith("video/");
                   const attKey = att.id ? `att-${att.id}` : `att-fallback-${attIndex}`;
 
-                  // Target the secure controller path explicitly with /api
-                  const fileUrl = att.id 
-                    ? `${API_URL}/attachments/${att.id}`
-                    : att.fileUrl.startsWith('http') || att.fileUrl.startsWith('data:') || att.fileUrl.startsWith('blob:')
-                      ? att.fileUrl 
-                      : `${API_URL}${att.fileUrl}`;
+                  // Built via the cleaner decoupled structural rules
+                  const fileUrl = buildAttachmentUrl(att);
 
                   return (
                     <div key={attKey} className={styles.mediaWrapper}>
