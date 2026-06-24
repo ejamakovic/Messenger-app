@@ -1,8 +1,10 @@
+// Chat.ts
 import styles from "./Chat.module.css";
 import type { Message } from "../../models/message";
 import type { UserModel } from "../../models/user";
 import { API_URL } from "../../services/api";
 import { useState, useEffect } from "react";
+import axios from "axios";
 
 type Props = {
   currentUser: UserModel;
@@ -13,6 +15,68 @@ type Props = {
 
 type PreviewState = { url: string; type: "image" | "video" } | null;
 
+// ── SECURE IMAGE HELPER ──
+function SecureImage({ src, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
+  const [imageSrc, setImageSrc] = useState<string>("");
+
+  useEffect(() => {
+    if (!src) return;
+    // For pending/blob/data URLs, skip axios fetch
+    if (src.startsWith("blob:") || src.startsWith("data:")) {
+      setImageSrc(src);
+      return;
+    }
+
+    let objectUrl = "";
+    axios.get(src, { responseType: "blob" })
+      .then((response) => {
+        objectUrl = URL.createObjectURL(response.data);
+        setImageSrc(objectUrl);
+      })
+      .catch((err) => console.error("Failed to load secure image", err));
+
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [src]);
+
+  if (!imageSrc) return <div className={styles.mediaPlaceholder}>Loading Image...</div>;
+  return <img src={imageSrc} {...props} alt="Secure attachment" />;
+}
+
+// ── SECURE VIDEO HELPER ──
+function SecureVideo({ src, ...props }: React.VideoHTMLAttributes<HTMLVideoElement>) {
+  const [videoSrc, setVideoSrc] = useState<string>("");
+
+  useEffect(() => {
+    if (!src) return;
+    if (src.startsWith("blob:") || src.startsWith("data:")) {
+      setVideoSrc(src);
+      return;
+    }
+
+    let objectUrl = "";
+    axios.get(src, { responseType: "blob" })
+      .then((response) => {
+        objectUrl = URL.createObjectURL(response.data);
+        setVideoSrc(objectUrl);
+      })
+      .catch((err) => console.error("Failed to load secure video", err));
+
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [src]);
+
+  if (!videoSrc) return <div className={styles.mediaPlaceholder}>Loading Video...</div>;
+  return (
+    <video src={videoSrc} {...props}>
+      Your browser does not support the video tag.
+    </video>
+  );
+}
+
+// ── MAIN PUBLIC CHAT COMPONENT ──
 export default function PublicChat({ currentUser, messages, containerRef, onScroll }: Props) {
   const [preview, setPreview] = useState<PreviewState>(null);
   
@@ -42,8 +106,6 @@ export default function PublicChat({ currentUser, messages, containerRef, onScro
           const senderUsername = msg.sender?.username || (msg as any).senderUsername;
           const isMine = senderUsername === currentUser.username || msg.sender === currentUser;
           
-          // Instead of changing keys from socket -> db id, we build a key that stays identical.
-          // If the message has a distinct client timestamp, we prioritize keeping it unified.
           const stableIdentifier = msg.timestamp || index;
           const messageKey = msg.id 
             ? `msg-${msg.id}` 
@@ -58,17 +120,22 @@ export default function PublicChat({ currentUser, messages, containerRef, onScro
                 {msg.attachments?.map((att, attIndex) => {
                   const isImage = att.fileType?.startsWith("image/");
                   const isVideo = att.fileType?.startsWith("video/");
-                  const fileUrl = `${API_URL}${att.fileUrl}`;
                   const attKey = att.id ? `att-${att.id}` : `att-fallback-${attIndex}`;
+
+                  // Target the secure controller path explicitly with /api
+                  const fileUrl = att.id 
+                    ? `${API_URL}/attachments/${att.id}`
+                    : att.fileUrl.startsWith('http') || att.fileUrl.startsWith('data:') || att.fileUrl.startsWith('blob:')
+                      ? att.fileUrl 
+                      : `${API_URL}${att.fileUrl}`;
 
                   return (
                     <div key={attKey} className={styles.mediaWrapper}>
                       {isImage && (
-                        <img
+                        <SecureImage
                           src={fileUrl}
                           className={styles.image}
                           onClick={() => setPreview({ url: fileUrl, type: "image" })}
-                          alt="attachment"
                           loading="lazy"
                         />
                       )}
@@ -77,9 +144,7 @@ export default function PublicChat({ currentUser, messages, containerRef, onScro
                           className={styles.videoThumbnailContainer}
                           onClick={() => setPreview({ url: fileUrl, type: "video" })}
                         >
-                          <video className={styles.videoThumbnail}>
-                            <source src={fileUrl} type={att.fileType} />
-                          </video>
+                          <SecureVideo src={fileUrl} className={styles.videoThumbnail} />
                           <div className={styles.playButtonOverlay}>▶</div>
                         </div>
                       )}
@@ -107,16 +172,15 @@ export default function PublicChat({ currentUser, messages, containerRef, onScro
           
           <div className={styles.previewContent} onClick={(e) => e.stopPropagation()}>
             {preview.type === "image" ? (
-              <img src={preview.url} className={styles.previewMedia} alt="Preview" />
+              <SecureImage src={preview.url} className={styles.previewMedia} />
             ) : (
-              <video 
+              <SecureVideo 
                 controls 
                 autoPlay 
                 className={styles.previewMedia}                
                 playsInline 
-              >
-                <source src={preview.url} />
-              </video>
+                src={preview.url}
+              />
             )}
           </div>
         </div>

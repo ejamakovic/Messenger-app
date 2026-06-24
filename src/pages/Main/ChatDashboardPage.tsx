@@ -267,7 +267,7 @@ export default function ChatDashboardPage() {
 
           if (document.hasFocus()) {
             log.info("LAST_SEEN", `Window focused on incoming message — marking ID: ${msg.id} as seen.`);
-            patchConversationLastSeen(user.id, msg.id, conversation.id)
+            patchConversationLastSeen(conversation.id, user.id, msg.id)            
               .catch((err) => log.error("LAST_SEEN", "Failed to patch last seen on incoming message.", err));
           }
 
