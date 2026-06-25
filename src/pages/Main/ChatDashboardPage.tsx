@@ -331,7 +331,7 @@ export default function ChatDashboardPage() {
       return;
     }
     log.info("SOCKET", `New notification received. ID: ${notif.id}`);
-    setNotifications((prev) => [notif, ...prev]);  // this updates TopMenu automatically
+    setNotifications((prev) => [notif, ...prev]); 
   };
 
 
@@ -380,6 +380,12 @@ export default function ChatDashboardPage() {
     }
   };
 
+  const handleNotificationRemove = (id: number) => {
+    setNotifications(prev =>
+      prev.filter(n => n.id !== id)
+    );
+  };
+
   // ---------------------------------------------------
   // --------------- RENDER GUARDS --------------------
   // ---------------------------------------------------
@@ -400,6 +406,11 @@ export default function ChatDashboardPage() {
         onNotificationRead={(targetId) => {
           setNotifications((prev) =>
             prev.map((n) => (n.id === targetId ? { ...n, status: "OPENED" } : n))
+          );
+        }}
+        onNotificationRemove={(targetId) => {
+          setNotifications(prev =>
+            prev.filter(n => n.id !== targetId)
           );
         }}
       />

@@ -15,9 +15,16 @@ interface TopMenuProps {
   conversations: ConversationListDto[];
   notifications: NotificationDto[];
   onNotificationRead: (id: number) => void;
+  onNotificationRemove: (id: number) => void;
 }
 
-export default function TopMenu({ user, conversations, notifications, onNotificationRead }: TopMenuProps) {
+export default function TopMenu({
+  user,
+  conversations,
+  notifications,
+  onNotificationRead,
+  onNotificationRemove
+}: TopMenuProps) {
   const navigate = useNavigate();
   
   const [showChatsDropdown, setShowChatsDropdown] = useState(false);
@@ -43,13 +50,20 @@ export default function TopMenu({ user, conversations, notifications, onNotifica
     setShowChatsDropdown(false);
     navigate(`/chat/conversation/${id}`);
   };
-  
-  const handleFriendshipResponse = async (e: React.MouseEvent, notifId: number, friendshipId: number, status: "ACCEPTED" | "REJECTED") => {
-    e.stopPropagation(); 
+
+  const handleFriendshipResponse = async (
+    e: React.MouseEvent,
+    notifId: number,
+    friendshipId: number,
+    status: "ACCEPTED" | "REJECTED"
+  ) => {
+    e.stopPropagation();
+
     try {
       await updateFriendshipStatus(friendshipId, status);
       await putNotificationStatus(notifId, "OPENED");
-      onNotificationRead(notifId);
+
+      onNotificationRemove(notifId);
     } catch (err) {
       console.error(`Failed to ${status.toLowerCase()} friendship status:`, err);
     }
@@ -176,7 +190,12 @@ export default function TopMenu({ user, conversations, notifications, onNotifica
                             <div className={styles.friendshipActionContainer}>
                               <button 
                                 className={`${styles.inlineActionBtn} ${styles.acceptBtn}`}
-                                onClick={(e) => handleFriendshipResponse(e, notif.id, notif.referenceId, "ACCEPTED")}
+                                onClick={
+                                  (e) => {
+                                    handleFriendshipResponse(e, notif.id, notif.referenceId, "ACCEPTED")
+
+                                  }
+                                }
                                 title="Prihvati"
                               >
                                 <Check size={14} />
