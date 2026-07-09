@@ -68,3 +68,12 @@ export const patchConversationLastSeen = async (
     lastSeenMessageId
   });
 }
+
+// BE TODO: POST /conversations/group  body: { name: string, memberIds: number[] } -> Conversation (type "GROUP")
+export const createGroupConversation = async (
+  name: string,
+  memberIds: number[]
+): Promise<Conversation> => {
+  const res = await api.post(`/conversations/group`, { name, memberIds });
+  return res.data;
+};

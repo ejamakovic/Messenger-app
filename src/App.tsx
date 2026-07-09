@@ -4,6 +4,8 @@ import ChatDashboardPage from "./pages/Main/ChatDashboardPage";
 import AuthPage from "./pages/Auth/AuthPage"; 
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { SocketProvider } from "./context/SocketContext";
+import EditProfilePage from "./pages/Profile/EditProfilePage";
+import ProfilePage from "./pages/Profile/ProfilePage";
 
 function AppRoutes() {
   // Grab both loading and user states from your context
@@ -33,8 +35,12 @@ function AppRoutes() {
         <Route path="/chat/public" element={<ChatDashboardPage />} />                    
         <Route path="/chat/conversation/:conversationId" element={<ChatDashboardPage />} />          
         <Route path="/chat/user/:receiverUsername" element={<ChatDashboardPage />} />
+
+        <Route path="/profile/edit" element={<EditProfilePage />} />
+        <Route path="/profile/:userId" element={<ProfilePage />} />
+
         {/* Optional fallback: if they type a random URL while logged in, go home */}
-        <Route path="*" element={<ChatDashboardPage />} />
+        <Route path="*" element={<ChatDashboardPage />} />                
       </Routes>
     </BrowserRouter>
   );

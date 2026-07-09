@@ -224,15 +224,20 @@ export default function TopMenu({
         <div className={styles.divider} />
 
         <div className={styles.userProfileSegment}>
-          <div className={styles.userBadgeAvatar}>
+          <div
+            className={styles.userBadgeAvatar}
+            onClick={() => navigate(`/profile/${user.id}`)}
+            style={{ cursor: "pointer" }}
+            title="Pogledaj profil"
+          >
             <User size={13} className={styles.profileUserIcon} />
             <span className={styles.profileUsername}>@{user.username}</span>
-          </div>
+          </div>  
           {/* Updated Action Pointer Event to local method */}
           <button className={styles.logoutActionButton} onClick={handleLogoutClick} title="Log Out">
             <LogOut size={15} />
           </button>
-        </div>        
+        </div>       
       </div>      
       <div className={styles.actionControls}>
         <ThemeToggle />
