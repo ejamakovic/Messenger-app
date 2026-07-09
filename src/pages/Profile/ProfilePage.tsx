@@ -33,17 +33,33 @@ export default function ProfilePage() {
     if (!user) return;
     setPageLoading(true);
     try {
-      const [profile, userPosts, convs, notifs] = await Promise.all([
-        getUserProfile(targetId),
-        getUserPosts(targetId),
-        getUserConversations(user.id),
-        getNotifications(user.id),
-      ]);
+      const profile = await getUserProfile(targetId);
 
-      setProfileUser(profile);
-      setPosts(userPosts.content);
-      setConversations(convs.content || []);
-      setNotifications(notifs);
+setProfileUser(profile);
+
+try {
+    const userPosts = await getUserPosts(targetId);
+    setPosts(userPosts.content);
+} catch(err) {
+    console.error("Posts failed:", err);
+    setPosts([]);
+}
+
+try {
+    const convs = await getUserConversations(user.id);
+    setConversations(convs.content || []);
+} catch(err) {
+    console.error("Conversations failed:", err);
+}
+
+try {
+    const notifs = await getNotifications(user.id);
+    setNotifications(notifs);
+} catch(err) {
+    console.error("Notifications failed:", err);
+}
+
+
     } catch (err) {
       console.error("Failed to load profile page data:", err);
     } finally {
