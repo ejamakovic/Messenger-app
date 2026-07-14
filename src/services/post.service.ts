@@ -15,18 +15,21 @@ export const getUserPosts = async (
 
 // BE TODO: POST /posts (multipart/form-data: authorId, content, privacy, image?) -> Post
 export const createPost = async (
-  authorId: number,
   content: string,
   privacy: PostPrivacy,
   image?: File
 ): Promise<Post> => {
+
   const formData = new FormData();
-  formData.append("authorId", String(authorId));
+
   formData.append("content", content);
   formData.append("privacy", privacy);
-  if (image) formData.append("image", image);
+
+  if(image)
+      formData.append("image", image);
 
   const res = await api.post("/posts", formData);
+
   return res.data;
 };
 

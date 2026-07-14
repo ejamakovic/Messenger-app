@@ -1,21 +1,17 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./EditProfilePage.module.css";
 import TopMenu from "../../components/TopMenu/TopMenu";
-import PostCard from "../../components/PostCard/PostCard";
 import { useAuth } from "../../context/AuthContext";
 import { updateProfile, uploadAvatar } from "../../services/profile.service";
-import { getUserPosts, createPost, deletePost, updatePost } from "../../services/post.service";
-import { getUserConversations } from "../../services/conversation.service";
-import { getNotifications } from "../../services/notification.service";
-import type { Post, PostPrivacy } from "../../models/post";
-import type { ConversationListDto } from "../../models/conversationListDto";
-import type { NotificationDto } from "../../models/notification";
-import { Camera, ImagePlus, ArrowLeft } from "lucide-react";
+import { useInbox } from "../../hooks/useInbox";
+import { Camera, ArrowLeft } from "lucide-react";
 
 export default function EditProfilePage() {
   const { user, token, saveSession } = useAuth();
   const navigate = useNavigate();
+
+  const { conversations, notifications, setNotifications } = useInbox(user);
 
   const [firstName, setFirstName] = useState(user?.firstName || "");
   const [lastName, setLastName] = useState(user?.lastName || "");
@@ -25,40 +21,7 @@ export default function EditProfilePage() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [newPostContent, setNewPostContent] = useState("");
-  const [newPostPrivacy, setNewPostPrivacy] = useState<PostPrivacy>("PUBLIC");
-  const [newPostImage, setNewPostImage] = useState<File | null>(null);
-
-  const [conversations, setConversations] = useState<ConversationListDto[]>([]);
-  const [notifications, setNotifications] = useState<NotificationDto[]>([]);
-  const [pageLoading, setPageLoading] = useState(true);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const postImageInputRef = useRef<HTMLInputElement>(null);
-
-  const loadData = useCallback(async () => {
-    if (!user) return;
-    setPageLoading(true);
-    try {
-      const [userPosts, convs, notifs] = await Promise.all([
-        getUserPosts(user.id),
-        getUserConversations(user.id),
-        getNotifications(user.id),
-      ]);
-      setPosts(userPosts.content);
-      setConversations(convs.content || []);
-      setNotifications(notifs);
-    } catch (err) {
-      console.error("Failed to load edit profile data:", err);
-    } finally {
-      setPageLoading(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
 
   const handleAvatarPick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -78,13 +41,7 @@ export default function EditProfilePage() {
         avatarUrl = res.avatarUrl;
       }
 
-      const updated = await updateProfile(user.id, {
-        firstName,
-        lastName,
-        email,
-        bio,
-        avatarUrl,
-      });
+      const updated = await updateProfile(user.id, { firstName, lastName, email, bio, avatarUrl });
 
       saveSession(updated, token ?? "");
       alert("Profil je uspješno ažuriran.");
@@ -96,48 +53,7 @@ export default function EditProfilePage() {
     }
   };
 
-  const handleCreatePost = async () => {
-    if (!user || newPostContent.trim().length === 0) return;
-    try {
-      const post = await createPost(user.id, newPostContent.trim(), newPostPrivacy, newPostImage || undefined);
-      setPosts((prev) => [post, ...prev]);
-      setNewPostContent("");
-      setNewPostImage(null);
-      setNewPostPrivacy("PUBLIC");
-    } catch (err) {
-      console.error("Failed to create post:", err);
-    }
-  };
-
-  const handleDeletePost = async (postId: number) => {
-    if (!window.confirm("Jeste li sigurni da želite obrisati objavu?")) return;
-    try {
-      await deletePost(postId);
-      setPosts((prev) => prev.filter((p) => p.id !== postId));
-    } catch (err) {
-      console.error("Failed to delete post:", err);
-    }
-  };
-
-  const handleEditPost = async (postId: number, content: string) => {
-    try {
-      const updated = await updatePost(postId, { content });
-      setPosts((prev) => prev.map((p) => (p.id === postId ? updated : p)));
-    } catch (err) {
-      console.error("Failed to edit post:", err);
-    }
-  };
-
-  const handlePrivacyChange = async (postId: number, privacy: PostPrivacy) => {
-    try {
-      const updated = await updatePost(postId, { privacy });
-      setPosts((prev) => prev.map((p) => (p.id === postId ? updated : p)));
-    } catch (err) {
-      console.error("Failed to change post privacy:", err);
-    }
-  };
-
-  if (!user || pageLoading) {
+  if (!user) {
     return <div className={styles.appSpinnerView}>Učitavanje...</div>;
   }
 
@@ -210,61 +126,6 @@ export default function EditProfilePage() {
           <button className={styles.saveBtn} onClick={handleSaveProfile} disabled={saving}>
             {saving ? "Spremanje..." : "Spremi promjene"}
           </button>
-        </div>
-
-        <div className={styles.postComposer}>
-          <h3>Nova objava</h3>
-          <textarea
-            rows={3}
-            placeholder="Šta ti je na umu?"
-            value={newPostContent}
-            onChange={(e) => setNewPostContent(e.target.value)}
-          />
-
-          <div className={styles.composerControls}>
-            <select value={newPostPrivacy} onChange={(e) => setNewPostPrivacy(e.target.value as PostPrivacy)}>
-              <option value="PUBLIC">Javno</option>
-              <option value="FRIENDS">Prijatelji</option>
-              <option value="PRIVATE">Privatno</option>
-            </select>
-
-            <input
-              type="file"
-              accept="image/*"
-              ref={postImageInputRef}
-              className={styles.hiddenFileInput}
-              onChange={(e) => setNewPostImage(e.target.files?.[0] || null)}
-            />
-            <button className={styles.attachImageBtn} onClick={() => postImageInputRef.current?.click()}>
-              <ImagePlus size={16} />
-            </button>
-
-            <button className={styles.postSubmitBtn} onClick={handleCreatePost}>
-              Objavi
-            </button>
-          </div>
-
-          {newPostImage && <span className={styles.selectedFileName}>{newPostImage.name}</span>}
-        </div>
-
-        <div className={styles.postsSection}>
-          <h3 className={styles.postsSectionTitle}>Tvoje objave</h3>
-          {posts.length === 0 ? (
-            <div className={styles.emptyPosts}>Još nema objava.</div>
-          ) : (
-            <div className={styles.postsList}>
-              {posts.map((post) => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  isOwner
-                  onDelete={handleDeletePost}
-                  onEdit={handleEditPost}
-                  onPrivacyChange={handlePrivacyChange}
-                />
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </div>

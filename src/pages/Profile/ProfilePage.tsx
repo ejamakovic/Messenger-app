@@ -1,19 +1,17 @@
-import { useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import styles from "./ProfilePage.module.css";
 import TopMenu from "../../components/TopMenu/TopMenu";
 import PostCard from "../../components/PostCard/PostCard";
 import { useAuth } from "../../context/AuthContext";
 import { getUserProfile } from "../../services/profile.service";
-import { getUserPosts, deletePost, updatePost } from "../../services/post.service";
-import { getUserConversations, getOrCreatePrivateConversation } from "../../services/conversation.service";
+import { getUserPosts, deletePost, updatePost, createPost } from "../../services/post.service";
+import { getOrCreatePrivateConversation } from "../../services/conversation.service";
 import { sendFriendRequest } from "../../services/friendship.service";
-import { getNotifications } from "../../services/notification.service";
 import type { UserModel } from "../../models/user";
-import type { Post, PostPrivacy } from "../../models/post";
-import type { ConversationListDto } from "../../models/conversationListDto";
-import type { NotificationDto } from "../../models/notification";
-import { MessageSquare, UserPlus, ArrowLeft, Settings } from "lucide-react";
+import type { Post, PostPrivacy } from "../../models/post";;
+import { ImagePlus, MessageSquare, UserPlus, ArrowLeft, Settings } from "lucide-react";
+import { useInbox } from "../../hooks/useInbox";
 
 export default function ProfilePage() {
   const { userId } = useParams<{ userId: string }>();
@@ -22,44 +20,29 @@ export default function ProfilePage() {
 
   const [profileUser, setProfileUser] = useState<UserModel | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [conversations, setConversations] = useState<ConversationListDto[]>([]);
-  const [notifications, setNotifications] = useState<NotificationDto[]>([]);
+
   const [pageLoading, setPageLoading] = useState(true);
+
+  const [newPostContent, setNewPostContent] = useState("");
+  const [newPostPrivacy, setNewPostPrivacy] = useState<PostPrivacy>("PUBLIC");
+  const [newPostImage, setNewPostImage] = useState<File | null>(null);
+
+  const postImageInputRef = useRef<HTMLInputElement>(null);
 
   const targetId = Number(userId);
   const isOwnProfile = user?.id === targetId;
+  const { conversations, notifications, setNotifications } = useInbox(user);
 
   const loadProfile = useCallback(async () => {
     if (!user) return;
     setPageLoading(true);
     try {
-      const profile = await getUserProfile(targetId);
-
-setProfileUser(profile);
-
-try {
-    const userPosts = await getUserPosts(targetId);
-    setPosts(userPosts.content);
-} catch(err) {
-    console.error("Posts failed:", err);
-    setPosts([]);
-}
-
-try {
-    const convs = await getUserConversations(user.id);
-    setConversations(convs.content || []);
-} catch(err) {
-    console.error("Conversations failed:", err);
-}
-
-try {
-    const notifs = await getNotifications(user.id);
-    setNotifications(notifs);
-} catch(err) {
-    console.error("Notifications failed:", err);
-}
-
-
+      const [profile, userPosts] = await Promise.all([
+        getUserProfile(targetId),
+        getUserPosts(targetId),
+      ]);
+      setProfileUser(profile);
+      setPosts(userPosts.content);
     } catch (err) {
       console.error("Failed to load profile page data:", err);
     } finally {
@@ -70,6 +53,27 @@ try {
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
+
+  const handleCreatePost = async () => {
+  if (!user || newPostContent.trim().length === 0) return;
+
+  try {
+    const post = await createPost(      
+      newPostContent.trim(),
+      newPostPrivacy,
+      newPostImage || undefined
+    );
+
+    setPosts((prev) => [post, ...prev]);
+
+    setNewPostContent("");
+    setNewPostImage(null);
+    setNewPostPrivacy("PUBLIC");
+
+  } catch(err) {
+    console.error("Failed to create post:", err);
+  }
+};
 
   const handleStartChat = async () => {
     if (!user || !profileUser) return;
@@ -177,7 +181,74 @@ try {
           </div>
         </div>
 
+        {isOwnProfile && (
+          <div className={styles.postComposer}>
+
+            <h3>Nova objava</h3>
+
+            <textarea
+              rows={3}
+              placeholder="Šta ti je na umu?"
+              value={newPostContent}
+              onChange={(e)=>setNewPostContent(e.target.value)}
+            />
+
+
+            <div className={styles.composerControls}>
+
+              <select
+                value={newPostPrivacy}
+                onChange={(e)=>
+                  setNewPostPrivacy(e.target.value as PostPrivacy)
+                }
+              >
+                <option value="PUBLIC">Javno</option>
+                <option value="FRIENDS">Prijatelji</option>
+                <option value="PRIVATE">Privatno</option>
+              </select>
+
+
+              <input
+                type="file"
+                accept="image/*"
+                ref={postImageInputRef}
+                className={styles.hiddenFileInput}
+                onChange={(e)=>
+                  setNewPostImage(e.target.files?.[0] || null)
+                }
+              />
+
+
+              <button
+                className={styles.attachImageBtn}
+                onClick={() => postImageInputRef.current?.click()}
+              >
+                <ImagePlus size={16}/>
+              </button>
+
+
+              <button
+                className={styles.postSubmitBtn}
+                onClick={handleCreatePost}
+              >
+                Objavi
+              </button>
+
+            </div>
+
+
+            {newPostImage && (
+              <span>
+                {newPostImage.name}
+              </span>
+            )}
+
+          </div>
+        )}
+          
         <div className={styles.postsSection}>
+          
+
           <h3 className={styles.postsSectionTitle}>Objave</h3>
           {posts.length === 0 ? (
             <div className={styles.emptyPosts}>Još nema objava.</div>
