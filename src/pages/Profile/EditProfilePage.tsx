@@ -6,6 +6,7 @@ import { useAuth } from "../../context/AuthContext";
 import { updateProfile, uploadAvatar } from "../../services/profile.service";
 import { useInbox } from "../../hooks/useInbox";
 import { Camera, ArrowLeft } from "lucide-react";
+import { buildAvatarUrl } from "../../services/attachments.service";
 
 export default function EditProfilePage() {
   const { user, token, saveSession } = useAuth();
@@ -17,7 +18,7 @@ export default function EditProfilePage() {
   const [lastName, setLastName] = useState(user?.lastName || "");
   const [email, setEmail] = useState(user?.email || "");
   const [bio, setBio] = useState(user?.bio || "");
-  const [avatarPreview, setAvatarPreview] = useState<string | undefined>(user?.avatarUrl);
+  const [avatarPreview, setAvatarPreview] = useState<string | undefined>(buildAvatarUrl(user?.avatarUrl));
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 

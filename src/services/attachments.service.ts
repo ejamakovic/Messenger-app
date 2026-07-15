@@ -31,3 +31,11 @@ export function buildAttachmentUrl(attachment: { id?: number; fileUrl: string })
     ? attachment.fileUrl
     : `${API_URL}${attachment.fileUrl}`;
 }
+
+export function buildAvatarUrl(avatarUrl?: string | null): string | undefined {
+  if (!avatarUrl) return undefined;
+  if (avatarUrl.startsWith("http") || avatarUrl.startsWith("data:") || avatarUrl.startsWith("blob:")) {
+    return avatarUrl;
+  }
+  return `${API_URL}${avatarUrl}`;
+}

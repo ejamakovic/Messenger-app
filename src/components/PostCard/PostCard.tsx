@@ -2,6 +2,7 @@ import { useState } from "react";
 import { MoreVertical, Trash2, Lock, Globe2, Users as UsersIcon, Pencil, Check, X } from "lucide-react";
 import styles from "./PostCard.module.css";
 import type { Post, PostPrivacy } from "../../models/post";
+import SecureImage from "../SecureImage/SecureImage";
 
 type Props = {
   post: Post;
@@ -101,7 +102,7 @@ export default function PostCard({ post, isOwner, onDelete, onEdit, onPrivacyCha
 
       {post.imageUrl && (
         <div className={styles.postImageWrapper}>
-          <img src={post.imageUrl} alt="Post" className={styles.postImage} />
+          <SecureImage src={post.imageUrl} alt="Post" className={styles.postImage} />
         </div>
       )}
 

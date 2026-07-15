@@ -1,19 +1,23 @@
 // socket.service.ts
 let socket: WebSocket | null = null
 
+type Listener = (data: any) => void;
+
 type SocketEvent =
   | "message"
   | "user_join"
   | "user_leave"
   | "notification"
-
-type Listener = (data: any) => void
+  | "reaction_added"
+  | "reaction_removed"
 
 const listeners: Record<SocketEvent, Set<Listener>> = {
   message: new Set(),
   user_join: new Set(),
-  user_leave: new Set(),  
+  user_leave: new Set(),
   notification: new Set(),
+  reaction_added: new Set(),
+  reaction_removed: new Set(),
 }
 
 export const connectSocket = (token: string) => {

@@ -6,6 +6,7 @@ import { sendFriendRequest } from "../../services/friendship.service";
 import { useNavigate } from "react-router-dom";
 import { RefreshCw, Radio, MessageSquare, UserPlus, MoreVertical, User, Users } from "lucide-react";
 import GroupChatModal from "../GroupChatModal/GroupChatModal";
+import { buildAvatarUrl } from "../../services/attachments.service";
 
 interface SidebarProps {
   user: UserModel;
@@ -101,7 +102,7 @@ export default function Sidebar({ user, onlineUsers, onRefresh, className }: Sid
               >
                 <div className={styles.avatarMockBlock}>
                   {u.avatarUrl ? (
-                    <img src={u.avatarUrl} alt={u.username} style={{ width: "100%", height: "100%", borderRadius: "8px", objectFit: "cover" }} />
+                    <img src={buildAvatarUrl(u.avatarUrl)} alt={u.username} style={{ width: "100%", height: "100%", borderRadius: "8px", objectFit: "cover" }} />
                   ) : (
                     u.username.substring(0, 2).toUpperCase()
                   )}

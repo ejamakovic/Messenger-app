@@ -12,6 +12,7 @@ import type { UserModel } from "../../models/user";
 import type { Post, PostPrivacy } from "../../models/post";;
 import { ImagePlus, MessageSquare, UserPlus, ArrowLeft, Settings } from "lucide-react";
 import { useInbox } from "../../hooks/useInbox";
+import { buildAvatarUrl } from "../../services/attachments.service";
 
 export default function ProfilePage() {
   const { userId } = useParams<{ userId: string }>();
@@ -147,7 +148,7 @@ export default function ProfilePage() {
         <div className={styles.profileHeader}>
           <div className={styles.avatarLarge}>
             {profileUser.avatarUrl ? (
-              <img src={profileUser.avatarUrl} alt={profileUser.username} />
+              <img src={buildAvatarUrl(profileUser.avatarUrl)} alt={profileUser.username} />
             ) : (
               <span>{profileUser.username.substring(0, 2).toUpperCase()}</span>
             )}

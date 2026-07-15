@@ -267,3 +267,26 @@
 .chatContainer::-webkit-scrollbar-thumb:hover {
   background-color: var(--accent-border);
 }
+
+.messageCol {
+  display: flex;
+  flex-direction: column;
+  max-width: 68%; 
+  gap: 4px; 
+}
+
+.bubbleMine, .bubbleTheirs {
+  max-width: 100% !important; 
+}
+
+.reactionsWrapperMine {
+  display: flex;
+  justify-content: flex-end;
+  margin-right: 6px;
+}
+
+.reactionsWrapperTheirs {
+  display: flex;
+  justify-content: flex-start;
+  margin-left: 6px;
+}
