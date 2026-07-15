@@ -1,7 +1,7 @@
 import { api } from "./api";
-import type { MessageReactionDto } from "../models/reaction";
+import type { MessageReaction } from "../models/messageReaction";
 
-export const getReactions = async (messageId: number): Promise<MessageReactionDto[]> => {
+export const getReactions = async (messageId: number): Promise<MessageReaction[]> => {
   const res = await api.get(`/messages/${messageId}/reactions`);
   return res.data;
 };
@@ -9,7 +9,7 @@ export const getReactions = async (messageId: number): Promise<MessageReactionDt
 export const addReaction = async (
   messageId: number,
   emoji: string
-): Promise<MessageReactionDto | null> => {
+): Promise<MessageReaction | null> => {
   const res = await api.post(`/messages/${messageId}/reactions`, { emoji });
   return res.data;
 };

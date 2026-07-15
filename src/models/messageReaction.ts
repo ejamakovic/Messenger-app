@@ -1,6 +1,6 @@
 import type { UserModel } from "./user";
 
-export type MessageReactionDto = {
+export type MessageReaction = {
   id: number;
   messageId: number;
   conversationId: number;

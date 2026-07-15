@@ -2,7 +2,7 @@
 import styles from "./Chat.module.css";
 import type { Message } from "../../models/message";
 import type { UserModel } from "../../models/user";
-import type { MessageReactionDto } from "../../models/reaction";
+import type { MessageReaction } from "../../models/messageReaction";
 import { useState, useEffect } from "react";
 import { fetchSecureAttachmentBlob, buildAttachmentUrl } from "../../services/attachments.service";
 import { getReactions, getAvailableEmojis } from "../../services/reaction.service";
@@ -55,7 +55,7 @@ type PreviewState = { url: string; type: "image" | "video" } | null;
 // ── MAIN PUBLIC CHAT COMPONENT ──
 export default function PublicChat({ currentUser, messages, containerRef, onScroll }: Props) {
   const [preview, setPreview] = useState<PreviewState>(null);
-  const [reactionsByMessage, setReactionsByMessage] = useState<Record<number, MessageReactionDto[]>>({});
+  const [reactionsByMessage, setReactionsByMessage] = useState<Record<number, MessageReaction[]>>({});
   const [availableEmojis, setAvailableEmojis] = useState<string[]>([]);
 
   // SECURE DOWNLOAD HANDLER
@@ -92,12 +92,29 @@ export default function PublicChat({ currentUser, messages, containerRef, onScro
       .catch((err) => console.error("Failed to load available reactions:", err));
   }, []);
 
-  // ── FETCH REACTIONS FOR NEWLY SEEN MESSAGES ──
+  // ── MAP PRE-LOADED REACTIONS & FALLBACK FETCH ──
   useEffect(() => {
-    const idsToFetch = messages
-      .map((m) => m.id)
-      .filter((id) => id != null && reactionsByMessage[id] === undefined);
+    // 1. First, instantly grab any reactions that are already attached to incoming messages
+    const initialReactionsMap: Record<number, MessageReaction[]> = {};
+    const idsToFetch: number[] = [];
 
+    messages.forEach((msg) => {
+      if (msg.id == null) return;
+
+      if (msg.messageReactions) {
+        initialReactionsMap[msg.id] = msg.messageReactions;
+      } else if (reactionsByMessage[msg.id] === undefined) {
+        // If we don't have reactions in state and they weren't in the message payload, fetch them
+        idsToFetch.push(msg.id);
+      }
+    });
+
+    // Populate existing reactions directly into state
+    if (Object.keys(initialReactionsMap).length > 0) {
+      setReactionsByMessage((prev) => ({ ...prev, ...initialReactionsMap }));
+    }
+
+    // 2. Fetch fallback reactions asynchronously only if missing
     idsToFetch.forEach((id) => {
       getReactions(id)
         .then((data) => {
@@ -110,7 +127,7 @@ export default function PublicChat({ currentUser, messages, containerRef, onScro
 
   // ── LIVE REACTION UPDATES ──
   useEffect(() => {
-    const handleReactionAdded = (payload: MessageReactionDto) => {
+    const handleReactionAdded = (payload: MessageReaction) => {
       setReactionsByMessage((prev) => {
         const existing = prev[payload.messageId] || [];
         const alreadyThere = existing.some(
@@ -157,9 +174,7 @@ export default function PublicChat({ currentUser, messages, containerRef, onScro
 
           return (
             <div key={messageKey} className={isMine ? styles.messageRowMine : styles.messageRowTheirs}>
-              {/* Added a wrapper column to keep bubble and reactions stacked cleanly */}
               <div className={styles.messageCol}>
-                                
                 <div className={isMine ? styles.bubbleMine : styles.bubbleTheirs}>
                   <div className={styles.username}>@{senderUsername || "Unknown"}</div>
                   {msg.content && <div className={styles.content}>{msg.content}</div>}
@@ -201,6 +216,7 @@ export default function PublicChat({ currentUser, messages, containerRef, onScro
                       currentUserId={currentUser.id}
                       reactions={reactionsByMessage[msg.id] || []}
                       availableEmojis={availableEmojis}
+                      alignRight={isMine} // Pass alignment configuration
                     />
                   </div>
                 )}
