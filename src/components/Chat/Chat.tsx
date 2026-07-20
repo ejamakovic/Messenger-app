@@ -1,4 +1,3 @@
-// Chat.tsx
 import styles from "./Chat.module.css";
 import type { Message } from "../../models/message";
 import type { UserModel } from "../../models/user";
@@ -15,19 +14,19 @@ type Props = {
   messages: Message[];
   containerRef: React.RefObject<HTMLDivElement | null>;
   onScroll: () => void;
+  isAtBottom: boolean;
+  scrollToBottom: () => void;
 };
 
 interface SecureVideoProps extends React.VideoHTMLAttributes<HTMLVideoElement> {
   src: string;
 }
 
-// ── SECURE VIDEO HELPER ──
 function SecureVideo({ src, ...props }: SecureVideoProps) {
   const [videoSrc, setVideoSrc] = useState<string>("");
 
   useEffect(() => {
     let objectUrl = "";
-
     fetchSecureAttachmentBlob(src)
       .then((localUrl) => {
         if (localUrl.startsWith("blob:") && localUrl !== src) {
@@ -52,13 +51,18 @@ function SecureVideo({ src, ...props }: SecureVideoProps) {
 
 type PreviewState = { url: string; type: "image" | "video" } | null;
 
-// ── MAIN PUBLIC CHAT COMPONENT ──
-export default function PublicChat({ currentUser, messages, containerRef, onScroll }: Props) {
+export default function PublicChat({ 
+  currentUser, 
+  messages, 
+  containerRef, 
+  onScroll, 
+  isAtBottom, 
+  scrollToBottom 
+}: Props) {
   const [preview, setPreview] = useState<PreviewState>(null);
   const [reactionsByMessage, setReactionsByMessage] = useState<Record<number, MessageReaction[]>>({});
   const [availableEmojis, setAvailableEmojis] = useState<string[]>([]);
 
-  // SECURE DOWNLOAD HANDLER
   const handleDownload = async (url: string) => {
     try {
       const downloadUrl = await fetchSecureAttachmentBlob(url);
@@ -85,36 +89,29 @@ export default function PublicChat({ currentUser, messages, containerRef, onScro
     return () => window.removeEventListener("keydown", handleEsc);
   }, []);
 
-  // ── AVAILABLE EMOJIS (fetched once) ──
   useEffect(() => {
     getAvailableEmojis()
       .then(setAvailableEmojis)
       .catch((err) => console.error("Failed to load available reactions:", err));
   }, []);
 
-  // ── MAP PRE-LOADED REACTIONS & FALLBACK FETCH ──
   useEffect(() => {
-    // 1. First, instantly grab any reactions that are already attached to incoming messages
     const initialReactionsMap: Record<number, MessageReaction[]> = {};
     const idsToFetch: number[] = [];
 
     messages.forEach((msg) => {
       if (msg.id == null) return;
-
       if (msg.messageReactions) {
         initialReactionsMap[msg.id] = msg.messageReactions;
       } else if (reactionsByMessage[msg.id] === undefined) {
-        // If we don't have reactions in state and they weren't in the message payload, fetch them
         idsToFetch.push(msg.id);
       }
     });
 
-    // Populate existing reactions directly into state
     if (Object.keys(initialReactionsMap).length > 0) {
       setReactionsByMessage((prev) => ({ ...prev, ...initialReactionsMap }));
     }
 
-    // 2. Fetch fallback reactions asynchronously only if missing
     idsToFetch.forEach((id) => {
       getReactions(id)
         .then((data) => {
@@ -122,10 +119,8 @@ export default function PublicChat({ currentUser, messages, containerRef, onScro
         })
         .catch((err) => console.error(`Failed to load reactions for message ${id}:`, err));
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages]);
 
-  // ── LIVE REACTION UPDATES ──
   useEffect(() => {
     const handleReactionAdded = (payload: MessageReaction) => {
       setReactionsByMessage((prev) => {
@@ -162,69 +157,83 @@ export default function PublicChat({ currentUser, messages, containerRef, onScro
 
   return (
     <>
-      <div ref={containerRef} onScroll={onScroll} className={styles.chatContainer}>
-        {messages.map((msg, index) => {
-          const senderUsername = msg.sender?.username || (msg as any).senderUsername;
-          const isMine = senderUsername === currentUser.username || msg.sender === currentUser;
+      {/* Structural layout wrapper frame supporting local spatial components */}
+      <div className={styles.chatWrapper}>
+        <div ref={containerRef} onScroll={onScroll} className={styles.chatContainer}>
+          {messages.map((msg, index) => {
+            const senderUsername = msg.sender?.username || (msg as any).senderUsername;
+            const isMine = senderUsername === currentUser.username || msg.sender === currentUser;
 
-          const stableIdentifier = msg.timestamp || index;
-          const messageKey = msg.id
-            ? `msg-${msg.id}`
-            : `msg-pending-${stableIdentifier}`;
+            const stableIdentifier = msg.timestamp || index;
+            const messageKey = msg.id
+              ? `msg-${msg.id}`
+              : `msg-pending-${stableIdentifier}`;
 
-          return (
-            <div key={messageKey} className={isMine ? styles.messageRowMine : styles.messageRowTheirs}>
-              <div className={styles.messageCol}>
-                <div className={isMine ? styles.bubbleMine : styles.bubbleTheirs}>
-                  <div className={styles.username}>@{senderUsername || "Unknown"}</div>
-                  {msg.content && <div className={styles.content}>{msg.content}</div>}
+            return (
+              <div key={messageKey} className={isMine ? styles.messageRowMine : styles.messageRowTheirs}>
+                <div className={styles.messageCol}>
+                  <div className={isMine ? styles.bubbleMine : styles.bubbleTheirs}>
+                    <div className={styles.username}>@{senderUsername || "Unknown"}</div>
+                    {msg.content && <div className={styles.content}>{msg.content}</div>}
 
-                  {msg.attachments?.map((att, attIndex) => {
-                    const isImage = att.fileType?.startsWith("image/");
-                    const isVideo = att.fileType?.startsWith("video/");
-                    const attKey = att.id ? `att-${att.id}` : `att-fallback-${attIndex}`;
-                    const fileUrl = buildAttachmentUrl(att);
+                    {msg.attachments?.map((att, attIndex) => {
+                      const isImage = att.fileType?.startsWith("image/");
+                      const isVideo = att.fileType?.startsWith("video/");
+                      const attKey = att.id ? `att-${att.id}` : `att-fallback-${attIndex}`;
+                      const fileUrl = buildAttachmentUrl(att);
 
-                    return (
-                      <div key={attKey} className={styles.mediaWrapper}>
-                        {isImage && (
-                          <SecureImage
-                            src={fileUrl}
-                            className={styles.image}
-                            onClick={() => setPreview({ url: fileUrl, type: "image" })}
-                            loading="lazy"
-                          />
-                        )}
-                        {isVideo && (
-                          <div
-                            className={styles.videoThumbnailContainer}
-                            onClick={() => setPreview({ url: fileUrl, type: "video" })}
-                          >
-                            <SecureVideo src={fileUrl} className={styles.videoThumbnail} />
-                            <div className={styles.playButtonOverlay}>▶</div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-                
-                {msg.id && (
-                  <div className={isMine ? styles.reactionsWrapperMine : styles.reactionsWrapperTheirs}>
-                    <MessageReactions
-                      messageId={msg.id}
-                      currentUserId={currentUser.id}
-                      reactions={reactionsByMessage[msg.id] || []}
-                      availableEmojis={availableEmojis}
-                      alignRight={isMine} // Pass alignment configuration
-                    />
+                      return (
+                        <div key={attKey} className={styles.mediaWrapper}>
+                          {isImage && (
+                            <SecureImage
+                              src={fileUrl}
+                              className={styles.image}
+                              onClick={() => setPreview({ url: fileUrl, type: "image" })}
+                              loading="lazy"
+                            />
+                          )}
+                          {isVideo && (
+                            <div
+                              className={styles.videoThumbnailContainer}
+                              onClick={() => setPreview({ url: fileUrl, type: "video" })}
+                            >
+                              <SecureVideo src={fileUrl} className={styles.videoThumbnail} />
+                              <div className={styles.playButtonOverlay}>▶</div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
-
+                  
+                  {msg.id && (
+                    <div className={isMine ? styles.reactionsWrapperMine : styles.reactionsWrapperTheirs}>
+                      <MessageReactions
+                        messageId={msg.id}
+                        currentUserId={currentUser.id}
+                        reactions={reactionsByMessage[msg.id] || []}
+                        availableEmojis={availableEmojis}
+                        alignRight={isMine}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+
+        {/* Floating action layout element */}
+        {!isAtBottom && (
+          <button 
+            type="button" 
+            className={styles.scrollToBottomBtn} 
+            onClick={scrollToBottom}
+            aria-label="Scroll to recent messages"
+          >
+            ↓
+          </button>
+        )}
       </div>
 
       {/* UNIFIED MEDIA OVERLAY */}
