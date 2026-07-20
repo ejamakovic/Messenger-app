@@ -1,6 +1,6 @@
 // ChatDashboardPage.tsx
 import styles from "./ChatDashboardPage.module.css";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import MessageInput from "../../components/MessageInput/MessageInput";
 import Chat from "../../components/Chat/Chat";
@@ -9,8 +9,8 @@ import TopMenu from "../../components/TopMenu/TopMenu";
 
 import { subscribe, unsubscribe } from "../../services/socket.service";
 import { getOnlineUsers } from "../../services/user.service";
-import { getConversationMessages, sendMessage } from "../../services/message.service";
-import { getConversation, getPublicConversation, patchConversationLastSeen } from "../../services/conversation.service";
+import { getConversationMessages, getMessagesBefore, getMessageWindow, sendMessage } from "../../services/message.service";
+import { getConversation, getLastSeenMessageId, getPublicConversation, patchConversationLastSeen } from "../../services/conversation.service";
 
 import type { UserModel } from "../../models/user";
 import type { Message } from "../../models/message";
@@ -48,6 +48,9 @@ export default function ChatDashboardPage() {
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
 
+  const [initialFocusMessageId, setInitialFocusMessageId] = useState<number | null>(null);
+  const isAtBottomRef = useRef(true);
+
   // ---------------------------------------------------
   // ------------ LAST SEEN TRACKING -------------------
   // ---------------------------------------------------
@@ -72,49 +75,36 @@ export default function ChatDashboardPage() {
   // ----------------- INIT ----------------------------
   // ---------------------------------------------------
   const fetchChatData = useCallback(async () => {
-    if (!user) return;
-    setPageLoading(true);
+  if (!user) return;
+  setPageLoading(true);
+  try {
+    let currentConv: Conversation | null = conversationId
+      ? await getConversation(Number(conversationId))
+      : await getPublicConversation();
 
-    try {
-      let currentConv: Conversation | null = null;
+    if (!currentConv?.id) throw new Error("Target conversation context could not be resolved.");
+    setConversation(currentConv);
 
-      if (conversationId) {
-        currentConv = await getConversation(Number(conversationId));
-      } else {
-        currentConv = await getPublicConversation();
-      }
+    const [users, lastSeenMessageId] = await Promise.all([
+      getOnlineUsers(),
+      getLastSeenMessageId(currentConv.id),
+    ]);
 
-      if (!currentConv?.id) {
-        throw new Error("Target conversation context could not be resolved.");
-      }
+    const win = await getMessageWindow(currentConv.id, lastSeenMessageId || undefined);
 
-      setConversation(currentConv);
-
-      const [users, messagesPage] = await Promise.all([
-        getOnlineUsers(),
-        getConversationMessages(currentConv.id, 0),
-      ]);
-
-      const reversedChat = messagesPage.content.reverse();
-
-      setOnlineUsers(users);
-      setChat(reversedChat);
-      setHasMore(messagesPage.content.length >= 30);
-      setPage(1);
-
-      if (reversedChat.length > 0) {
-        const lastMsg = reversedChat[reversedChat.length - 1];
-        await patchConversationLastSeen(currentConv.id, user.id, lastMsg.id);
-        setConversations((prev) =>
-          prev.map((c) => (c.id === currentConv!.id ? { ...c, unreadCount: 0 } : c))
-        );
-      }
-    } catch (err) {
-      log.error("INIT", "Chat initialization failed.", err);
-    } finally {
-      setPageLoading(false);
-    }
-  }, [user, conversationId, setConversations]);
+    setOnlineUsers(users);
+    setChat(win.messages);
+    setHasMore(win.hasMoreOlder);
+    setInitialFocusMessageId(lastSeenMessageId && lastSeenMessageId > 0 ? lastSeenMessageId : null);
+    // Deliberately NOT calling patchConversationLastSeen here — we don't want
+    // to burn the last-seen position before the user has actually scrolled
+    // there. It gets updated once isAtBottom becomes true (see effect below).
+  } catch (err) {
+    log.error("INIT", "Chat initialization failed.", err);
+  } finally {
+    setPageLoading(false);
+  }
+}, [user, conversationId]);
 
   useEffect(() => {
     if (user) fetchChatData();
@@ -132,27 +122,35 @@ export default function ChatDashboardPage() {
   // --------------- PAGINATION ------------------------
   // ---------------------------------------------------
   const loadMore = useCallback(async () => {
-    if (loadingMore || !hasMore || !conversation) return;
-
-    setLoadingMore(true);
-    try {
-      const nextPage = await getConversationMessages(conversation.id, page);
-
-      if (nextPage.content.length === 0) {
-        setHasMore(false);
-        return;
-      }
-
-      setChat((prev) => [...[...nextPage.content].reverse(), ...prev]);
-      setPage((prev) => prev + 1);
-    } catch (err) {
-      log.error("PAGINATION", "Failed to load more messages.", err);
-    } finally {
-      setLoadingMore(false);
+  if (loadingMore || !hasMore || !conversation || chat.length === 0) return;
+  setLoadingMore(true);
+  try {
+    const oldestId = chat[0].id;
+    const older = await getMessagesBefore(conversation.id, oldestId, 30);
+    if (older.length === 0) {
+      setHasMore(false);
+      return;
     }
-  }, [page, loadingMore, hasMore, conversation]);
+    setChat((prev) => [...older, ...prev]);
+    setHasMore(older.length >= 30);
+  } catch (err) {
+    log.error("PAGINATION", "Failed to load more messages.", err);
+  } finally {
+    setLoadingMore(false);
+  }
+}, [chat, loadingMore, hasMore, conversation]);
 
-  const { containerRef, onScroll } = useChatScroll(chat, loadMore);
+  const { containerRef, onScroll, isAtBottom, scrollToBottom } =
+    useChatScroll(chat, loadMore, initialFocusMessageId);
+
+  useEffect(() => { isAtBottomRef.current = isAtBottom; }, [isAtBottom]);
+
+  // Clear the unread badge only once the user actually reaches the bottom
+  useEffect(() => {
+    if (isAtBottom && chat.length > 0) {
+      markConversationAsRead();
+    }
+  }, [isAtBottom, chat.length, markConversationAsRead]);
 
   // ---------------------------------------------------
   // ----------------- SOCKET --------------------------
@@ -168,7 +166,7 @@ export default function ChatDashboardPage() {
       if (msg.conversationId !== conversation.id) return;
 
       setChat((prev) => {
-        if (document.hasFocus()) {
+        if (document.hasFocus() && isAtBottomRef.current) {
           patchConversationLastSeen(conversation.id, user.id, msg.id)
             .catch((err) => log.error("LAST_SEEN", "Failed to patch last seen on incoming message.", err));
         }
@@ -266,7 +264,14 @@ export default function ChatDashboardPage() {
           )}
 
           <div className={styles.chatMessages}>
-            <Chat currentUser={user} messages={chat} containerRef={containerRef} onScroll={onScroll} />
+            <Chat
+              currentUser={user}
+              messages={chat}
+              containerRef={containerRef}
+              onScroll={onScroll}
+              isAtBottom={isAtBottom}
+              scrollToBottom={scrollToBottom}
+            />
           </div>
 
           <div className={styles.chatInput}>

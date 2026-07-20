@@ -170,7 +170,7 @@ export default function PublicChat({
               : `msg-pending-${stableIdentifier}`;
 
             return (
-              <div key={messageKey} className={isMine ? styles.messageRowMine : styles.messageRowTheirs}>
+              <div key={messageKey} className={isMine ? styles.messageRowMine : styles.messageRowTheirs} data-message-id={msg.id}>
                 <div className={styles.messageCol}>
                   <div className={isMine ? styles.bubbleMine : styles.bubbleTheirs}>
                     <div className={styles.username}>@{senderUsername || "Unknown"}</div>

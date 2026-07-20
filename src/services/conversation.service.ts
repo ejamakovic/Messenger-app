@@ -77,3 +77,8 @@ export const createGroupConversation = async (
   const res = await api.post(`/conversations/group`, { name, memberIds });
   return res.data;
 };
+
+export const getLastSeenMessageId = async (conversationId: number): Promise<number> => {
+  const res = await api.get(`/conversations/${conversationId}/last-seen`);
+  return res.data.lastSeenMessageId;
+};

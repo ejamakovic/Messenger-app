@@ -2,6 +2,13 @@ import type { Message } from "../models/message"
 import type { Page } from "../models/Page"
 import { api } from "./api"
 
+export type MessageWindow = {
+  messages: Message[];
+  hasMoreOlder: boolean;
+  hasMoreNewer: boolean;
+  lastSeenMessageId: number | null;
+};
+
 export const sendMessage = async (
   senderId: number,
   conversationId: number,
@@ -35,6 +42,29 @@ export const getConversationMessages = async (
 
   return res.data
 }
+
+export const getMessageWindow = async (
+  conversationId: number,
+  lastSeenMessageId?: number | null,
+  before = 30,
+  after = 30
+): Promise<MessageWindow> => {
+  const res = await api.get(`/messages/conversation/${conversationId}/window`, {
+    params: { lastSeenMessageId: lastSeenMessageId || undefined, before, after },
+  });
+  return res.data;
+};
+
+export const getMessagesBefore = async (
+  conversationId: number,
+  messageId: number,
+  size = 30
+): Promise<Message[]> => {
+  const res = await api.get(`/messages/conversation/${conversationId}/before/${messageId}`, {
+    params: { size },
+  });
+  return res.data;
+};
 
 
 
