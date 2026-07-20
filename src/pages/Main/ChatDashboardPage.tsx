@@ -9,7 +9,7 @@ import TopMenu from "../../components/TopMenu/TopMenu";
 
 import { subscribe, unsubscribe } from "../../services/socket.service";
 import { getOnlineUsers } from "../../services/user.service";
-import { getConversationMessages, getMessagesBefore, getMessageWindow, sendMessage } from "../../services/message.service";
+import { getMessagesBefore, getMessageWindow, sendMessage } from "../../services/message.service";
 import { getConversation, getLastSeenMessageId, getPublicConversation, patchConversationLastSeen } from "../../services/conversation.service";
 
 import type { UserModel } from "../../models/user";

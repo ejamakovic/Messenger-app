@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { X, Users } from "lucide-react";
 import styles from "./GroupChatModal.module.css";
-import { getAllUsers } from "../../services/user.service";
+import { getFriends } from "../../services/friendship.service";
 import { createGroupConversation } from "../../services/conversation.service";
 import type { UserModel } from "../../models/user";
 
@@ -12,7 +12,7 @@ type Props = {
 };
 
 export default function GroupChatModal({ currentUserId, onClose, onCreated }: Props) {
-  const [allUsers, setAllUsers] = useState<UserModel[]>([]);
+  const [friends, setFriends] = useState<UserModel[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [groupName, setGroupName] = useState("");
   const [loading, setLoading] = useState(true);
@@ -20,9 +20,8 @@ export default function GroupChatModal({ currentUserId, onClose, onCreated }: Pr
 
   useEffect(() => {
     (async () => {
-      try {
-        const users = await getAllUsers();
-        setAllUsers(users.filter((u) => u.id !== currentUserId));
+      try {        
+        setFriends(await getFriends(currentUserId));        
       } catch (err) {
         console.error("Failed to load users for group chat picker:", err);
       } finally {
@@ -83,10 +82,10 @@ export default function GroupChatModal({ currentUserId, onClose, onCreated }: Pr
         <div className={styles.userListScroll}>
           {loading ? (
             <div className={styles.loadingText}>Učitavanje korisnika...</div>
-          ) : allUsers.length === 0 ? (
+          ) : friends.length === 0 ? (
             <div className={styles.loadingText}>Nema dostupnih korisnika.</div>
           ) : (
-            allUsers.map((u) => (
+            friends.map((u) => (
               <label key={u.id} className={styles.userRow}>
                 <input
                   type="checkbox"

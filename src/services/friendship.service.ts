@@ -1,3 +1,5 @@
+import type { Page } from "../models/Page";
+import type { UserModel } from "../models/user";
 import { api } from "./api";
 
 export const sendFriendRequest = async (
@@ -16,4 +18,16 @@ export const updateFriendshipStatus = async (
     await api.patch(`/friendships/${friendshipId}/status`, null, {
         params: { status }
     });
+};
+
+export const getFriends = async (
+  id: number,
+  page = 0,
+  size = 10
+): Promise<UserModel[]> => {
+  const res = await api.get<Page<UserModel>>(`/friendships/user/${id}`, {
+    params: { page, size },
+  });
+
+  return res.data.content;
 };
