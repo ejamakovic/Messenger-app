@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Smile } from "lucide-react";
 import styles from "./MessageReaction.module.css";
 import type { MessageReaction } from "../../models/messageReaction";
@@ -9,13 +9,35 @@ type Props = {
   currentUserId: number;
   reactions: MessageReaction[];
   availableEmojis: string[];
-  alignRight?: boolean; // New prop to align picker left/right dynamically
+  alignRight?: boolean;
 };
 
-export default function MessageReactions({ messageId, currentUserId, reactions, availableEmojis, alignRight = false }: Props) {
+export default function MessageReactions({
+  messageId,
+  currentUserId,
+  reactions,
+  availableEmojis,
+  alignRight = false,
+}: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
+  const pickerRef = useRef<HTMLDivElement | null>(null);
 
-  // Group reactions by emoji cleanly
+  // Close picker when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
+        setPickerOpen(false);
+      }
+    }
+
+    if (pickerOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [pickerOpen]);
+
   const grouped = useMemo(() => {
     const map = new Map<string, MessageReaction[]>();
     for (const r of reactions) {
@@ -56,8 +78,7 @@ export default function MessageReactions({ messageId, currentUserId, reactions, 
               <span className={styles.emojiSpan}>{emoji}</span>
               <span className={styles.reactionCount}>{list.length}</span>
             </button>
-            
-            {/* Custom Tooltip listing usernames on hover */}
+
             <div className={styles.reactionTooltip}>
               {list.map((r, i) => (
                 <div key={r.user?.id || i} className={styles.tooltipUser}>
@@ -69,33 +90,31 @@ export default function MessageReactions({ messageId, currentUserId, reactions, 
         );
       })}
 
-      <div className={styles.pickerWrapper}>
-        <button 
-          className={styles.addReactionBtn} 
-          onClick={() => setPickerOpen((v) => !v)} 
+      <div className={styles.pickerWrapper} ref={pickerRef}>
+        <button
+          className={styles.addReactionBtn}
+          onClick={() => setPickerOpen((v) => !v)}
           title="Add reaction"
         >
           <Smile size={14} />
         </button>
 
         {pickerOpen && (
-          <>
-            {/* Click-away backdrop overlay */}
-            <div className={styles.pickerOverlay} onClick={() => setPickerOpen(false)} />
-            
-            {/* Dynamically align picker popover container */}
-            <div className={`${styles.pickerPopover} ${alignRight ? styles.pickerPopoverRight : styles.pickerPopoverLeft}`}>
-              {availableEmojis.map((emoji) => (
-                <button 
-                  key={emoji} 
-                  className={styles.pickerEmojiBtn} 
-                  onClick={() => toggleReaction(emoji)}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          </>
+          <div
+            className={`${styles.pickerPopover} ${
+              alignRight ? styles.pickerPopoverRight : styles.pickerPopoverLeft
+            }`}
+          >
+            {availableEmojis.map((emoji) => (
+              <button
+                key={emoji}
+                className={styles.pickerEmojiBtn}
+                onClick={() => toggleReaction(emoji)}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
         )}
       </div>
     </div>

@@ -1,5 +1,16 @@
-import { useState } from "react";
-import { MoreVertical, Trash2, Lock, Globe2, Users as UsersIcon, Pencil, Check, X } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import {
+  MoreVertical,
+  Trash2,
+  Lock,
+  Globe2,
+  Users as UsersIcon,
+  Pencil,
+  Check,
+  X,
+  ChevronRight,
+  Eye,
+} from "lucide-react";
 import styles from "./PostCard.module.css";
 import type { Post, PostPrivacy } from "../../models/post";
 import SecureImage from "../SecureImage/SecureImage";
@@ -26,13 +37,38 @@ const privacyLabels: Record<PostPrivacy, string> = {
 
 export default function PostCard({ post, isOwner, onDelete, onEdit, onPrivacyChange }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showPrivacyOptions, setShowPrivacyOptions] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(post.content);
+
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+        setShowPrivacyOptions(false);
+      }
+    }
+
+    if (menuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [menuOpen]);
 
   const handleSaveEdit = () => {
     if (draft.trim().length === 0) return;
     onEdit?.(post.id, draft.trim());
     setIsEditing(false);
+  };
+
+  const closeAllMenus = () => {
+    setMenuOpen(false);
+    setShowPrivacyOptions(false);
   };
 
   return (
@@ -41,35 +77,76 @@ export default function PostCard({ post, isOwner, onDelete, onEdit, onPrivacyCha
         <span className={styles.postDate}>{new Date(post.createdAt).toLocaleString()}</span>
 
         {isOwner && (
-          <div className={styles.postMenuWrapper}>
-            <button className={styles.postMenuBtn} onClick={() => setMenuOpen((v) => !v)}>
+          <div className={styles.postMenuWrapper} ref={menuRef}>
+            <button
+              className={styles.postMenuBtn}
+              onClick={() => {
+                setMenuOpen((v) => !v);
+                setShowPrivacyOptions(false);
+              }}
+            >
               <MoreVertical size={16} />
             </button>
+
             {menuOpen && (
               <div className={styles.postMenuPopover}>
-                <button
-                  className={styles.postMenuItem}
-                  onClick={() => { setIsEditing(true); setMenuOpen(false); }}
-                >
-                  <Pencil size={14} /> Uredi
-                </button>
-                <div className={styles.postMenuDivider} />
-                {(["PUBLIC", "FRIENDS", "PRIVATE"] as PostPrivacy[]).map((p) => (
-                  <button
-                    key={p}
-                    className={styles.postMenuItem}
-                    onClick={() => { onPrivacyChange?.(post.id, p); setMenuOpen(false); }}
-                  >
-                    {privacyIcons[p]} {privacyLabels[p]}
-                  </button>
-                ))}
-                <div className={styles.postMenuDivider} />
-                <button
-                  className={`${styles.postMenuItem} ${styles.postMenuDanger}`}
-                  onClick={() => { onDelete?.(post.id); setMenuOpen(false); }}
-                >
-                  <Trash2 size={14} /> Obriši
-                </button>
+                {!showPrivacyOptions ? (
+                  <>
+                    <button
+                      className={styles.postMenuItem}
+                      onClick={() => {
+                        setIsEditing(true);
+                        closeAllMenus();
+                      }}
+                    >
+                      <Pencil size={14} /> Uredi sadrzaj
+                    </button>
+
+                    <button
+                      className={styles.postMenuItem}
+                      onClick={() => setShowPrivacyOptions(true)}
+                    >
+                      <Eye size={14} /> Promijeni vidljivost <ChevronRight size={14} style={{ marginLeft: "auto" }} />
+                    </button>
+
+                    <div className={styles.postMenuDivider} />
+
+                    <button
+                      className={`${styles.postMenuItem} ${styles.postMenuDanger}`}
+                      onClick={() => {
+                        onDelete?.(post.id);
+                        closeAllMenus();
+                      }}
+                    >
+                      <Trash2 size={14} /> Obriši
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      className={styles.postMenuItem}
+                      onClick={() => setShowPrivacyOptions(false)}
+                      style={{ opacity: 0.7 }}
+                    >
+                      ← Natrag
+                    </button>
+                    <div className={styles.postMenuDivider} />
+                    {(["PUBLIC", "FRIENDS", "PRIVATE"] as PostPrivacy[]).map((p) => (
+                      <button
+                        key={p}
+                        className={`${styles.postMenuItem} ${
+                          post.privacy === p ? styles.postMenuItemActive : ""
+                        }`}
+                        onClick={() => {
+                          onPrivacyChange?.(post.id, p);
+                          closeAllMenus();
+                        }}
+                      >
+                        {privacyIcons[p]} {privacyLabels[p]}
+                      </button>
+                    ))}
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -90,7 +167,10 @@ export default function PostCard({ post, isOwner, onDelete, onEdit, onPrivacyCha
             </button>
             <button
               className={styles.editCancelBtn}
-              onClick={() => { setIsEditing(false); setDraft(post.content); }}
+              onClick={() => {
+                setIsEditing(false);
+                setDraft(post.content);
+              }}
             >
               <X size={14} /> Odustani
             </button>
