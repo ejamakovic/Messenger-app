@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, MessageSquare, LogOut, Globe, User, Check, X } from "lucide-react"; 
+import { Bell, MessageSquare, LogOut, Globe, User, Check, X, Newspaper } from "lucide-react";
 import { logoutUser } from "../../services/user.service";
 import type { UserModel } from "../../models/user";
 import styles from "./TopMenu.module.css";
@@ -88,6 +88,10 @@ export default function TopMenu({
         <Globe className={styles.logoIcon} size={20} />
         <span className={styles.logoTitle}>Piši briši</span>
       </div>
+
+      <button className={styles.actionIconBtn} onClick={() => navigate("/feed")} title="Feed">
+        <Newspaper size={18} />
+       </button>
           
       <div className={styles.actionControls}>
         <button 

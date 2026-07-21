@@ -6,16 +6,10 @@ export const getReactions = async (messageId: number): Promise<MessageReaction[]
   return res.data;
 };
 
-export const addReaction = async (
-  messageId: number,
-  emoji: string
-): Promise<MessageReaction | null> => {
+/** Same emoji again removes it; a different emoji overwrites it. */
+export const setReaction = async (messageId: number, emoji: string): Promise<MessageReaction | null> => {
   const res = await api.post(`/messages/${messageId}/reactions`, { emoji });
   return res.data;
-};
-
-export const removeReaction = async (messageId: number, emoji: string): Promise<void> => {
-  await api.delete(`/messages/${messageId}/reactions`, { params: { emoji } });
 };
 
 export const getAvailableEmojis = async (): Promise<string[]> => {

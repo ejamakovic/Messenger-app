@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { SocketProvider } from "./context/SocketContext";
 import EditProfilePage from "./pages/Profile/EditProfilePage";
 import ProfilePage from "./pages/Profile/ProfilePage";
+import FeedPage from "./pages/Feed/FeedPage";
 
 function AppRoutes() {
   // Grab both loading and user states from your context
@@ -38,6 +39,7 @@ function AppRoutes() {
 
         <Route path="/profile/edit" element={<EditProfilePage />} />
         <Route path="/profile/:userId" element={<ProfilePage />} />
+        <Route path="/feed" element={<FeedPage />} />
 
         {/* Optional fallback: if they type a random URL while logged in, go home */}
         <Route path="*" element={<ChatDashboardPage />} />                

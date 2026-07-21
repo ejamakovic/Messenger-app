@@ -26,7 +26,7 @@ export default function ProfilePage() {
 
   const [newPostContent, setNewPostContent] = useState("");
   const [newPostPrivacy, setNewPostPrivacy] = useState<PostPrivacy>("PUBLIC");
-  const [newPostImage, setNewPostImage] = useState<File | null>(null);
+  const [newPostMedia, setNewPostMedia] = useState<File[]>([]);
 
   const postImageInputRef = useRef<HTMLInputElement>(null);
 
@@ -59,16 +59,12 @@ export default function ProfilePage() {
   if (!user || newPostContent.trim().length === 0) return;
 
   try {
-    const post = await createPost(      
-      newPostContent.trim(),
-      newPostPrivacy,
-      newPostImage || undefined
-    );
+    const post = await createPost(newPostContent.trim(), newPostPrivacy, newPostMedia);
 
     setPosts((prev) => [post, ...prev]);
 
     setNewPostContent("");
-    setNewPostImage(null);
+    setNewPostMedia([]);
     setNewPostPrivacy("PUBLIC");
 
   } catch(err) {
@@ -211,12 +207,11 @@ export default function ProfilePage() {
 
               <input
                 type="file"
-                accept="image/*"
+                accept="image/*,video/*"
+                multiple
                 ref={postImageInputRef}
                 className={styles.hiddenFileInput}
-                onChange={(e)=>
-                  setNewPostImage(e.target.files?.[0] || null)
-                }
+                onChange={(e) => setNewPostMedia(Array.from(e.target.files || []))}
               />
 
 
@@ -238,11 +233,8 @@ export default function ProfilePage() {
             </div>
 
 
-            {newPostImage && (
-              <span>
-                {newPostImage.name}
-              </span>
-            )}
+            {newPostMedia.length > 0 && <span>{newPostMedia.map((f) => f.name).join(", ")}</span>}
+...
 
           </div>
         )}
@@ -259,6 +251,7 @@ export default function ProfilePage() {
                 <PostCard
                   key={post.id}
                   post={post}
+                  currentUser={user}
                   isOwner={isOwnProfile}
                   onDelete={handleDeletePost}
                   onEdit={handleEditPost}

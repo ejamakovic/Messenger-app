@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { Smile } from "lucide-react";
 import styles from "./MessageReaction.module.css";
 import type { MessageReaction } from "../../models/messageReaction";
-import { addReaction, removeReaction } from "../../services/reaction.service";
+import { setReaction } from "../../services/reaction.service";
 
 type Props = {
   messageId: number;
@@ -54,11 +54,7 @@ export default function MessageReactions({
   const toggleReaction = async (emoji: string) => {
     setPickerOpen(false);
     try {
-      if (myReactionFor(emoji)) {
-        await removeReaction(messageId, emoji);
-      } else {
-        await addReaction(messageId, emoji);
-      }
+      await setReaction(messageId, emoji);
     } catch (err) {
       console.error("Failed to toggle reaction:", err);
     }

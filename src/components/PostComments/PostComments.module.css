@@ -1,0 +1,21 @@
+.commentsWrapper { display:flex; flex-direction:column; gap:14px; margin-top:12px; text-align:left; }
+.newCommentRow { display:flex; gap:8px; }
+.newCommentRow input { flex:1; padding:8px 12px; border:1px solid var(--border); border-radius:20px; background:var(--code-bg); color:var(--text-h); font-size:0.85rem; }
+.newCommentRow button { padding:8px 14px; border-radius:20px; border:none; background:var(--accent); color:var(--bg); cursor:pointer; font-size:0.8rem; }
+.commentRow { display:flex; gap:10px; }
+.avatar { width:32px; height:32px; border-radius:50%; background-color: var(--accent-bg); color: var(--accent); display:flex; align-items:center; justify-content:center; font-family: var(--mono); font-size:0.7rem; font-weight:bold; overflow:hidden; flex-shrink:0; }
+.avatar img { width:100%; height:100%; object-fit:cover; }
+.commentBody { flex:1; display:flex; flex-direction:column; gap:4px; }
+.commentBubble { background: var(--code-bg); border-radius:14px; padding:8px 12px; }
+.commentAuthor { font-size:0.8rem; color: var(--text-h); }
+.commentContent { margin:2px 0 0; font-size:0.85rem; color: var(--text); white-space:pre-wrap; }
+.commentActions { display:flex; align-items:center; gap:12px; padding-left:4px; }
+.linkBtn { background:none; border:none; color:var(--text); font-size:0.75rem; cursor:pointer; padding:0; }
+.linkBtn:hover { color: var(--accent); }
+.linkBtnDanger { background:none; border:none; color:#ef4444; font-size:0.75rem; cursor:pointer; padding:0; }
+.replyForm { display:flex; gap:6px; margin-top:4px; }
+.replyForm input { flex:1; padding:6px 10px; border:1px solid var(--border); border-radius:16px; background:var(--bg); color:var(--text-h); font-size:0.8rem; }
+.replyForm button { padding:6px 12px; border-radius:16px; border:none; background:var(--accent); color:var(--bg); font-size:0.75rem; cursor:pointer; }
+.repliesList { display:flex; flex-direction:column; gap:10px; margin-top:8px; padding-left:16px; border-left:2px solid var(--border); }
+.loadMoreBtn { align-self:flex-start; background:none; border:1px solid var(--border); color:var(--text); border-radius:14px; padding:6px 12px; font-size:0.75rem; cursor:pointer; }
+.loadMoreBtn:hover { border-color: var(--accent-border); color: var(--accent); }

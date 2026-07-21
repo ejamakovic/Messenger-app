@@ -1,0 +1,12 @@
+.reactionsBar { display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.reactionPill { display:flex; align-items:center; gap:4px; background-color: var(--code-bg); border:1px solid var(--border); border-radius:12px; padding:4px 8px; cursor:pointer; transition: all .15s ease; }
+.reactionPill:hover { background-color: var(--border); transform: translateY(-1px); }
+.reactionPillActive { background-color: var(--accent-bg); border-color: var(--accent); }
+.emojiSpan { font-size:14px; }
+.reactionCount { font-size:11px; font-weight:600; color: var(--text-h); }
+.pickerWrapper { position:relative; display:inline-block; }
+.addReactionBtn { display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; border:1px solid var(--border); background:transparent; color:var(--text-h); cursor:pointer; opacity:.6; transition:all .15s ease; }
+.addReactionBtn:hover { opacity:1; background-color: var(--border); }
+.pickerPopover { position:absolute; bottom:32px; left:0; background-color: var(--code-bg); border:1px solid var(--border); border-radius:12px; padding:8px; display:grid; grid-template-columns:repeat(5,1fr); gap:6px; box-shadow:0 8px 24px rgba(0,0,0,.15); z-index:100; }
+.pickerEmojiBtn { background:none; border:none; font-size:18px; padding:4px; cursor:pointer; border-radius:6px; width:32px; height:32px; }
+.pickerEmojiBtn:hover { background-color: var(--border); transform: scale(1.1); }
