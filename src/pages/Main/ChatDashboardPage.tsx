@@ -50,6 +50,7 @@ export default function ChatDashboardPage() {
 
   const [initialFocusMessageId, setInitialFocusMessageId] = useState<number | null>(null);
   const isAtBottomRef = useRef(true);
+  const [showSettings, setShowSettings] = useState(false);
 
   // ---------------------------------------------------
   // ------------ LAST SEEN TRACKING -------------------
@@ -251,14 +252,6 @@ export default function ChatDashboardPage() {
         />
 
         <div className={styles.chatSection}>
-          <div className={styles.activeChannelBanner}>
-            {conversationId ? (
-              <span><strong>@{conversation?.name || "Loading Context..."}</strong></span>
-            ) : (
-              <span>🌐 Public Global Chatroom Arena</span>
-            )}
-          </div>
-
           {loadingMore && (
             <div className={styles.loadingMoreIndicator}>Fetching previous history layers...</div>
           )}
@@ -266,11 +259,16 @@ export default function ChatDashboardPage() {
           <div className={styles.chatMessages}>
             <Chat
               currentUser={user}
+              conversation={conversation}
+              isPublic={!conversationId}
               messages={chat}
               containerRef={containerRef}
               onScroll={onScroll}
               isAtBottom={isAtBottom}
               scrollToBottom={scrollToBottom}
+              onConversationUpdated={(patch) =>
+                setConversation((prev) => (prev ? { ...prev, ...patch } : prev))
+              }
             />
           </div>
 

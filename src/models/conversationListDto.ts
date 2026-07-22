@@ -6,4 +6,5 @@ export type ConversationListDto = {
     unreadCount: number
     senderUsername?: string    
     timestamp?: string
+    otherUserAvatarUrl?: string
 }

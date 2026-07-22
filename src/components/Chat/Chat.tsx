@@ -1,21 +1,27 @@
 import styles from "./Chat.module.css";
 import type { Message } from "../../models/message";
 import type { UserModel } from "../../models/user";
+import type { Conversation } from "../../models/conversation";
 import type { MessageReaction } from "../../models/messageReaction";
 import { useState, useEffect } from "react";
-import { fetchSecureAttachmentBlob, buildAttachmentUrl } from "../../services/attachments.service";
+import { Settings } from "lucide-react";
+import { fetchSecureAttachmentBlob, buildAttachmentUrl, buildAvatarUrl } from "../../services/attachments.service";
 import { getReactions, getAvailableEmojis } from "../../services/reaction.service";
 import { subscribe, unsubscribe } from "../../services/socket.service";
 import SecureImage from "../SecureImage/SecureImage";
 import MessageReactions from "../MessageReaction/MessageReaction";
+import ChatSettingsModal from "../ChatSettings/ChatSettingsModal";
 
 type Props = {
   currentUser: UserModel;
+  conversation: Conversation | null;
+  isPublic: boolean; // true for the global chat — no settings/banner click there
   messages: Message[];
   containerRef: React.RefObject<HTMLDivElement | null>;
   onScroll: () => void;
   isAtBottom: boolean;
   scrollToBottom: () => void;
+  onConversationUpdated: (patch: Partial<Conversation>) => void;
 };
 
 interface SecureVideoProps extends React.VideoHTMLAttributes<HTMLVideoElement> {
@@ -50,16 +56,19 @@ function SecureVideo({ src, ...props }: SecureVideoProps) {
 }
 
 type PreviewState = { url: string; type: "image" | "video" } | null;
-
-export default function PublicChat({ 
-  currentUser, 
-  messages, 
-  containerRef, 
-  onScroll, 
-  isAtBottom, 
-  scrollToBottom 
+export default function PublicChat({
+  currentUser,
+  conversation,
+  isPublic,
+  messages,
+  containerRef,
+  onScroll,
+  isAtBottom,
+  scrollToBottom,
+  onConversationUpdated,
 }: Props) {
   const [preview, setPreview] = useState<PreviewState>(null);
+  const [showSettings, setShowSettings] = useState(false);
   const [reactionsByMessage, setReactionsByMessage] = useState<Record<number, MessageReaction[]>>({});
   const [availableEmojis, setAvailableEmojis] = useState<string[]>([]);
 
@@ -159,7 +168,21 @@ export default function PublicChat({
     <>
       {/* Structural layout wrapper frame supporting local spatial components */}
       <div className={styles.chatWrapper}>
-        <div ref={containerRef} onScroll={onScroll} className={styles.chatContainer}>
+        <div
+          className={styles.activeChannelBanner}
+          onClick={() => !isPublic && conversation && setShowSettings(true)}
+          style={{ cursor: !isPublic && conversation ? "pointer" : "default" }}
+        >
+          {!isPublic && conversation ? (
+            <span><strong>@{conversation.name || "Loading Context..."}</strong></span>
+          ) : (
+            <span>🌐 Public Global Chatroom Arena</span>
+          )}
+          {!isPublic && conversation && (
+            <Settings size={16} style={{ marginLeft: "auto" }} />
+          )}
+        </div>
+        <div ref={containerRef} onScroll={onScroll} className={styles.chatContainer}>          
           {messages.map((msg, index) => {
             const senderUsername = msg.sender?.username || (msg as any).senderUsername;
             const isMine = senderUsername === currentUser.username || msg.sender === currentUser;
@@ -172,6 +195,15 @@ export default function PublicChat({
             return (
               <div key={messageKey} className={isMine ? styles.messageRowMine : styles.messageRowTheirs} data-message-id={msg.id}>
                 <div className={styles.messageCol}>
+
+                  <div className={styles.avatarSmall}>
+                    {msg.sender?.avatarUrl ? (
+                      <img src={buildAvatarUrl(msg.sender.avatarUrl)} alt={senderUsername} />
+                    ) : (
+                      (senderUsername || "?").substring(0, 2).toUpperCase()
+                    )}
+                  </div>
+                  
                   <div className={isMine ? styles.bubbleMine : styles.bubbleTheirs}>
                     <div className={styles.username}>@{senderUsername || "Unknown"}</div>
                     {msg.content && <div className={styles.content}>{msg.content}</div>}
@@ -223,14 +255,8 @@ export default function PublicChat({
           })}
         </div>
 
-        {/* Floating action layout element */}
         {!isAtBottom && (
-          <button 
-            type="button" 
-            className={styles.scrollToBottomBtn} 
-            onClick={scrollToBottom}
-            aria-label="Scroll to recent messages"
-          >
+          <button type="button" className={styles.scrollToBottomBtn} onClick={scrollToBottom} aria-label="Scroll to recent messages">
             ↓
           </button>
         )}
@@ -263,6 +289,17 @@ export default function PublicChat({
             )}
           </div>
         </div>
+      )}
+
+      {showSettings && conversation && (
+        <ChatSettingsModal
+          conversation={conversation}
+          currentUserId={currentUser.id}
+          onClose={() => setShowSettings(false)}
+          onUpdated={(patch) => {
+            onConversationUpdated(patch);
+          }}
+        />
       )}
     </>
   );

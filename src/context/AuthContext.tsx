@@ -1,6 +1,7 @@
 // AuthContext.tsx
 import { createContext, useContext, useEffect, useState } from "react";
 import type { UserModel } from "../models/user";
+import { api } from "../services/api";
 
 type AuthContextType = {
   user: UserModel | null;
@@ -57,6 +58,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     initAuth();
   }, []);
+
+  useEffect(() => {
+    if (!token) return
+    // access token lives 15 min server-side; refresh a bit early
+    const interval = setInterval(() => {
+      api.post("/auth/refresh").then((res) => {
+        saveSession(res.data.user, res.data.accessToken)
+      }).catch(() => {})
+    }, 10 * 60 * 1000) 
+    return () => clearInterval(interval)
+  }, [token]);
 
   return (
     <AuthContext.Provider value={{ user, token, loading, saveSession, clearSession }}>

@@ -1,7 +1,10 @@
 
+import type { Attachment } from "../models/attachment";
 import type { Conversation } from "../models/conversation";
 import type { ConversationListDto } from "../models/conversationListDto";
+import type { ConversationMemberDto } from "../models/conversationMember";
 import type { Page } from "../models/Page";
+import type { UserModel } from "../models/user";
 import { api } from "./api";
 
 export const getPublicConversation = async (
@@ -82,3 +85,44 @@ export const getLastSeenMessageId = async (conversationId: number): Promise<numb
   const res = await api.get(`/conversations/${conversationId}/last-seen`);
   return res.data.lastSeenMessageId;
 };
+
+export const getConversationMembers = async (id: number): Promise<ConversationMemberDto[]> => {
+  const res = await api.get(`/conversations/${id}/members`)
+  return res.data
+}
+
+export const addConversationMember = async (id: number, userId: number) => {
+  const res = await api.post(`/conversations/${id}/members`, { userId })
+  return res.data
+}
+
+export const removeConversationMember = async (id: number, userId: number) => {
+  await api.delete(`/conversations/${id}/members/${userId}`)
+}
+
+export const changeConversationMemberRole = async (id: number, userId: number, role: string) => {
+  const res = await api.patch(`/conversations/${id}/members/${userId}/role`, { role })
+  return res.data
+}
+
+export const getAvailableUsersForConversation = async (id: number): Promise<UserModel[]> => {
+  const res = await api.get(`/conversations/${id}/available-users`)
+  return res.data
+}
+
+export const updateConversationDetails = async (id: number, name?: string, imageUrl?: string) => {
+  const res = await api.patch(`/conversations/${id}/details`, { name, imageUrl })
+  return res.data
+}
+
+export const uploadConversationImage = async (id: number, file: File): Promise<{ imageUrl: string }> => {
+  const formData = new FormData()
+  formData.append("file", file)
+  const res = await api.post(`/conversations/${id}/image`, formData)
+  return res.data
+}
+
+export const getConversationMedia = async (conversationId: number): Promise<Attachment[]> => {
+  const res = await api.get(`/messages/conversation/${conversationId}/media`)
+  return res.data
+}
