@@ -13,7 +13,8 @@ export const sendMessage = async (
   senderId: number,
   conversationId: number,
   content: string,
-  files: File[] 
+  files: File[],
+  replyToMessageId?: number
 ) => {
 
   const formData = new FormData();
@@ -21,6 +22,7 @@ export const sendMessage = async (
   formData.append("senderId", String(senderId))
   formData.append("conversationId", String(conversationId))
   formData.append("content", content || "")
+  formData.append("replyToMessageId", String(replyToMessageId))
   files.forEach((file) => {
     formData.append("files", file);
   });
@@ -65,6 +67,23 @@ export const getMessagesBefore = async (
   });
   return res.data;
 };
+
+export const editMessage = async (
+  messageId: number,
+  content: string
+) : Promise<Message> => {
+  const res = await api.patch(`/messages/${messageId}`,
+    {content: content}
+  )
+  return res.data
+}
+
+export const deleteMessage = async (
+  messageId: number
+) : Promise<Message> => {
+  const res = await api.delete(`/messages/${messageId}/delete`)
+  return res.data
+}
 
 
 

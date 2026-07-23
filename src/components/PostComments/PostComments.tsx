@@ -123,7 +123,14 @@ function CommentRow({
   );
 }
 
-export default function PostComments({ postId, currentUser }: { postId: number; currentUser: UserModel }) {
+type Props = {
+  postId: number;
+  currentUser: UserModel;
+  onCommentAdded?: () => void;
+  onCommentDeleted?: () => void;
+};
+
+export default function PostComments({ postId, currentUser, onCommentAdded, onCommentDeleted }: Props) {
   const [comments, setComments] = useState<PostCommentDto[]>([]);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -149,15 +156,14 @@ export default function PostComments({ postId, currentUser }: { postId: number; 
 
   useEffect(() => { load(0); }, [load]);
 
-  const submitComment = async () => {
+ const submitComment = async () => {
     if (!newComment.trim()) return;
     try {
       const created = await addComment(postId, newComment.trim());
       setComments((prev) => [created, ...prev]);
       setNewComment("");
-    } catch (err) {
-      console.error("Failed to add comment:", err);
-    }
+      onCommentAdded?.();
+    } catch (err) { console.error(err); }
   };
 
   const handleDeleted = async (id: number) => {
@@ -165,9 +171,8 @@ export default function PostComments({ postId, currentUser }: { postId: number; 
     try {
       await deleteComment(id);
       setComments((prev) => prev.filter((c) => c.id !== id));
-    } catch (err) {
-      console.error("Failed to delete comment:", err);
-    }
+      onCommentDeleted?.();
+    } catch (err) { console.error(err); }
   };
 
   return (

@@ -30,3 +30,7 @@ export const updatePost = async (postId: number, data: Partial<Pick<Post, "conte
 export const deletePost = async (postId: number): Promise<void> => {
   await api.delete(`/posts/${postId}`);
 };
+
+export const getPost = async (postId: number) : Promise<Post> => {
+  return (await api.get(`/posts/${postId}`)).data;
+}

@@ -9,7 +9,13 @@ import TopMenu from "../../components/TopMenu/TopMenu";
 
 import { subscribe, unsubscribe } from "../../services/socket.service";
 import { getOnlineUsers } from "../../services/user.service";
-import { getMessagesBefore, getMessageWindow, sendMessage } from "../../services/message.service";
+import {
+    getMessagesBefore,
+    getMessageWindow,
+    sendMessage,
+    editMessage,
+    deleteMessage,
+} from "../../services/message.service";
 import { getConversation, getLastSeenMessageId, getPublicConversation, patchConversationLastSeen } from "../../services/conversation.service";
 
 import type { UserModel } from "../../models/user";
@@ -45,12 +51,23 @@ export default function ChatDashboardPage() {
 
   const [pageLoading, setPageLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);  
 
   const [initialFocusMessageId, setInitialFocusMessageId] = useState<number | null>(null);
   const isAtBottomRef = useRef(true);
-  const [showSettings, setShowSettings] = useState(false);
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
+
+  const handleReply = (message: Message) => {
+      setReplyTo(message);
+  };
+
+  const handleEdit = async (messageId: number, content: string) => {
+      await editMessage(messageId, content);
+  };
+
+  const handleDelete = async (messageId: number) => {
+      await deleteMessage(messageId);
+  };
 
   // ---------------------------------------------------
   // ------------ LAST SEEN TRACKING -------------------
@@ -205,9 +222,17 @@ export default function ChatDashboardPage() {
     if (!canSend || !conversation || !user) return;
 
     try {
-      await sendMessage(user.id, conversation.id, text, selectedFiles);
-      setText("");
-      setSelectedFiles([]);
+      await sendMessage(
+        user.id,
+        conversation.id,
+        text,
+        selectedFiles,
+        replyTo?.id
+    );
+
+    setText("");
+    setSelectedFiles([]);
+    setReplyTo(null);
     } catch (err) {
       log.error("SEND", "Failed to send message.", err);
     }
@@ -266,20 +291,25 @@ export default function ChatDashboardPage() {
               onScroll={onScroll}
               isAtBottom={isAtBottom}
               scrollToBottom={scrollToBottom}
+              onReply={handleReply}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
               onConversationUpdated={(patch) =>
-                setConversation((prev) => (prev ? { ...prev, ...patch } : prev))
+                  setConversation((prev) => (prev ? { ...prev, ...patch } : prev))
               }
-            />
+          />
           </div>
 
           <div className={styles.chatInput}>
             <MessageInput
-              text={text}
-              files={selectedFiles}
-              canSend={canSend}
-              onTextChange={setText}
-              onFileSelect={setSelectedFiles}
-              onSend={handleSend}
+                text={text}
+                files={selectedFiles}
+                canSend={canSend}
+                replyTo={replyTo}
+                onCancelReply={() => setReplyTo(null)}
+                onTextChange={setText}
+                onFileSelect={setSelectedFiles}
+                onSend={handleSend}
             />
           </div>
         </div>

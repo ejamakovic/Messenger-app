@@ -58,6 +58,7 @@ export default function PostCard({ post, currentUser, isOwner, onDelete, onEdit,
   const [showComments, setShowComments] = useState(false);
   const [emojis, setEmojis] = useState<string[]>([]);
   const [reactionState, setReactionState] = useState({ counts: post.reactionCounts, mine: post.myReaction ?? null });
+  const [commentCount, setCommentCount] = useState(post.commentCount);
 
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -169,11 +170,18 @@ export default function PostCard({ post, currentUser, isOwner, onDelete, onEdit,
         />
 
         <button className={styles.commentsToggleBtn} onClick={() => setShowComments((v) => !v)}>
-          <MessageCircle size={14} /> {post.commentCount} komentara
+          <MessageCircle size={14} /> {commentCount} komentara
         </button>
       </div>
 
-      {showComments && <PostComments postId={post.id} currentUser={currentUser} />}
+      {showComments && (
+      <PostComments
+        postId={post.id}
+        currentUser={currentUser}
+        onCommentAdded={() => setCommentCount((c) => c + 1)}
+        onCommentDeleted={() => setCommentCount((c) => Math.max(c - 1, 0))}
+      />
+    )}
     </div>
   );
 }

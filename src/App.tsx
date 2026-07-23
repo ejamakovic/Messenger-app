@@ -7,6 +7,7 @@ import { SocketProvider } from "./context/SocketContext";
 import EditProfilePage from "./pages/Profile/EditProfilePage";
 import ProfilePage from "./pages/Profile/ProfilePage";
 import FeedPage from "./pages/Feed/FeedPage";
+import PostDetailPage from "./pages/Post/PostDetailPage";
 
 function AppRoutes() {
   // Grab both loading and user states from your context
@@ -40,6 +41,7 @@ function AppRoutes() {
         <Route path="/profile/edit" element={<EditProfilePage />} />
         <Route path="/profile/:userId" element={<ProfilePage />} />
         <Route path="/feed" element={<FeedPage />} />
+        <Route path="/post/:postId" element={<PostDetailPage />} />
 
         {/* Optional fallback: if they type a random URL while logged in, go home */}
         <Route path="*" element={<ChatDashboardPage />} />                

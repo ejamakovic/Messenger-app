@@ -1,74 +1,65 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { Smile } from "lucide-react";
 import styles from "./PostReactions.module.css";
-import { setPostReaction } from "../../services/postReaction.service";
+import { getPostReactions, setPostReaction } from "../../services/postReaction.service";
+import type { PostReactionDto } from "../../models/postReaction";
 
 type Props = {
   postId: number;
   currentUserId: number;
-  reactionCounts: Record<string, number>;
-  myReaction?: string | null;
   availableEmojis: string[];
-  onChanged?: (reactionCounts: Record<string, number>, myReaction: string | null) => void;
 };
 
-export default function PostReactions({ postId, reactionCounts, myReaction, availableEmojis, onChanged }: Props) {
+export default function PostReactions({ postId, currentUserId, availableEmojis }: Props) {
+  const [reactions, setReactions] = useState<PostReactionDto[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const pickerRef = useRef<HTMLDivElement | null>(null);
 
+  useEffect(() => { getPostReactions(postId).then(setReactions).catch(console.error); }, [postId]);
+
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) setPickerOpen(false);
+    function onClick(e: MouseEvent) {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) setPickerOpen(false);
     }
-    if (pickerOpen) document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    if (pickerOpen) document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
   }, [pickerOpen]);
 
-  const entries = useMemo(() => Object.entries(reactionCounts || {}), [reactionCounts]);
+  const grouped = useMemo(() => {
+    const map = new Map<string, PostReactionDto[]>();
+    for (const r of reactions) map.set(r.emoji, [...(map.get(r.emoji) || []), r]);
+    return Array.from(map.entries());
+  }, [reactions]);
 
   const toggle = async (emoji: string) => {
     setPickerOpen(false);
-
-    // Optimistic update — posts aren't on the websocket feed.
-    const next = { ...reactionCounts };
-    if (myReaction) {
-      next[myReaction] = Math.max((next[myReaction] || 1) - 1, 0);
-      if (next[myReaction] === 0) delete next[myReaction];
-    }
-    let nextMyReaction: string | null = emoji;
-    if (myReaction === emoji) nextMyReaction = null;
-    else next[emoji] = (next[emoji] || 0) + 1;
-    onChanged?.(next, nextMyReaction);
-
     try {
-      await setPostReaction(postId, emoji);
-    } catch (err) {
-      console.error("Failed to set post reaction:", err);
-    }
+      const result = await setPostReaction(postId, emoji);
+      const fresh = await getPostReactions(postId); // simplest correct source of truth
+      setReactions(fresh);
+    } catch (err) { console.error(err); }
   };
 
   return (
     <div className={styles.reactionsBar}>
-      {entries.map(([emoji, count]) => (
-        <button
-          key={emoji}
-          className={`${styles.reactionPill} ${myReaction === emoji ? styles.reactionPillActive : ""}`}
-          onClick={() => toggle(emoji)}
-        >
-          <span className={styles.emojiSpan}>{emoji}</span>
-          <span className={styles.reactionCount}>{count}</span>
-        </button>
-      ))}
-
+      {grouped.map(([emoji, list]) => {
+        const mine = list.some((r) => r.user.id === currentUserId);
+        return (
+          <div key={emoji} className={styles.reactionPillWrapper}>
+            <button className={`${styles.reactionPill} ${mine ? styles.reactionPillActive : ""}`} onClick={() => toggle(emoji)}>
+              <span className={styles.emojiSpan}>{emoji}</span>
+              <span className={styles.reactionCount}>{list.length}</span>
+            </button>
+            <div className={styles.reactionTooltip}>
+              {list.map((r) => <div key={r.user.id} className={styles.tooltipUser}>@{r.user.username}</div>)}
+            </div>
+          </div>
+        );
+      })}
       <div className={styles.pickerWrapper} ref={pickerRef}>
-        <button className={styles.addReactionBtn} onClick={() => setPickerOpen((v) => !v)} title="React">
-          <Smile size={14} />
-        </button>
+        <button className={styles.addReactionBtn} onClick={() => setPickerOpen((v) => !v)}>😊</button>
         {pickerOpen && (
           <div className={styles.pickerPopover}>
-            {availableEmojis.map((emoji) => (
-              <button key={emoji} className={styles.pickerEmojiBtn} onClick={() => toggle(emoji)}>{emoji}</button>
-            ))}
+            {availableEmojis.map((e) => <button key={e} className={styles.pickerEmojiBtn} onClick={() => toggle(e)}>{e}</button>)}
           </div>
         )}
       </div>

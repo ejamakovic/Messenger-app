@@ -1,349 +1,237 @@
-/* Chat.module.css */
+/* src/components/Chat/Chat.module.css */
 
-@keyframes msgSlideInRight {
-  from { opacity: 0; transform: translateX(16px) scale(0.97); }
-  to   { opacity: 1; transform: translateX(0) scale(1); }
-}
+@keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
 
-@keyframes msgSlideInLeft {
-  from { opacity: 0; transform: translateX(-16px) scale(0.97); }
-  to   { opacity: 1; transform: translateX(0) scale(1); }
-}
+.chatWrapper { position: relative; display: flex; flex-direction: column; flex: 1; width: 100%; height: 100%; overflow: hidden; }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-@keyframes popIn {
-  from { opacity: 0; transform: scale(0.92); }
-  to   { opacity: 1; transform: scale(1); }
-}
-
-@keyframes overlayIn {
-  from { opacity: 0; backdrop-filter: blur(0px); }
-  to   { opacity: 1; backdrop-filter: blur(12px); }
-}
-
-/* The outer framing container must clip overflow layout expansion */
-.chatWrapper {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  width: 100%;
-  height: 100%;     
-  overflow: hidden; 
-}
-
-/* The component containing the ref hook must act as the primary viewport scroll window */
 .chatContainer {
   flex: 1;
-  overflow-y: auto; 
-  padding: 24px 20px;
+  overflow-y: auto;
+  padding: 20px 24px 8px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
   background-color: var(--bg);
 }
-
-/* Message rows */
-.messageRowMine {
-  display: flex;
-  justify-content: flex-end;
-  width: 100%;
-  animation: msgSlideInRight 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
-}
-
-.messageRowTheirs {
-  display: flex;
-  justify-content: flex-start;
-  width: 100%;
-  animation: msgSlideInLeft 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
-  align-items: flex-end; 
-  gap: 8px;
-}
-
-/* Bubbles */
-.bubbleMine {
-  background-color: var(--accent);
-  color: var(--bg);
-  padding: 10px 14px;
-  border-radius: 18px 18px 4px 18px;
-  max-width: 68%;
-  word-break: break-word;
-  box-shadow: 0 2px 12px var(--accent-border);
-  text-align: left;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-  cursor: default;
-}
-
-.bubbleMine:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 18px var(--accent-border);
-}
-
-.bubbleTheirs {
-  background-color: var(--code-bg);
-  color: var(--text-h);
-  border: 1px solid var(--border);
-  padding: 10px 14px;
-  border-radius: 18px 18px 18px 4px;
-  max-width: 68%;
-  word-break: break-word;
-  box-shadow: var(--shadow);
-  text-align: left;
-  transition: transform 0.15s ease, border-color 0.15s ease;
-  cursor: default;
-}
-
-.bubbleTheirs:hover {
-  transform: translateY(-1px);
-  border-color: var(--accent-border);
-}
-
-.username {
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 600;
-  margin-bottom: 4px;
-  opacity: 0.75;
-  letter-spacing: 0.02em;
-}
-
-.bubbleMine .username {
-  text-align: right;
-}
-
-.bubbleTheirs .username {
-  color: var(--accent);
-  opacity: 1;
-}
-
-.content {
-  font-size: 14.5px;
-  line-height: 1.5;
-}
-
-/* Media Components */
-.mediaWrapper {
-  margin-top: 8px;
-  border-radius: 12px;
-  overflow: hidden;
-  background-color: var(--border);
-  min-height: 160px;
-  min-width: 240px;
-  max-width: 280px;
-  transition: transform 0.2s ease;
-}
-
-.mediaWrapper:hover {
-  transform: scale(1.01);
-}
-
-.image, .videoThumbnail {
-  width: 100%;
-  max-width: 280px;
-  height: 200px;
-  object-fit: cover;
-  display: block;
-  cursor: zoom-in;
-  transition: transform 0.25s ease, filter 0.25s ease;
-}
-
-.image:hover {
-  transform: scale(1.03);
-  filter: brightness(1.05);
-}
-
-.videoThumbnailContainer {
-  position: relative;
-  cursor: pointer;
-}
-
-.playButtonOverlay {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(4px);
-  color: white;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  border: 1.5px solid rgba(255, 255, 255, 0.35);
-  transition: transform 0.2s ease, background 0.2s ease;
-}
-
-.videoThumbnailContainer:hover .playButtonOverlay {
-  transform: translate(-50%, -50%) scale(1.12);
-  background: rgba(0, 0, 0, 0.75);
-}
-
-/* Overlay Window Modal Styles */
-.imageOverlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.88);
-  backdrop-filter: blur(12px);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  z-index: 10000;
-  animation: overlayIn 0.25s ease-out both;
-}
-
-.overlayHeader {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  right: 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  z-index: 10001;
-  animation: fadeIn 0.3s ease 0.1s both;
-}
-
-.previewContent {
-  width: 90%;
-  height: 85%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) 0.05s both;
-}
-
-.previewMedia {
-  max-width: 100%;
-  max-height: 100%;
-  border-radius: 10px;
-  box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.6);
-}
-
-.closeButton {
-  background: rgba(255, 255, 255, 0.12);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  font-size: 26px;
-  line-height: 1;
-  padding: 6px 14px 10px 14px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
-}
-
-.closeButton:hover {
-  background: rgba(255, 255, 255, 0.25);
-  border-color: rgba(255, 255, 255, 0.4);
-  transform: rotate(90deg) scale(1.05);
-}
-
-.downloadButton {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  padding: 8px 18px;
-  border-radius: 20px;
-  font-family: var(--sans);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
-  backdrop-filter: blur(4px);
-}
-
-.downloadButton:hover {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--bg);
-  transform: translateY(-1px);
-}
-
-/* Scrollbar Modifications */
 .chatContainer::-webkit-scrollbar { width: 5px; }
 .chatContainer::-webkit-scrollbar-track { background: transparent; }
-.chatContainer::-webkit-scrollbar-thumb {
-  background-color: var(--border);
-  border-radius: 10px;
-  transition: background-color 0.2s ease;
-}
-.chatContainer::-webkit-scrollbar-thumb:hover {
-  background-color: var(--accent-border);
-}
+.chatContainer::-webkit-scrollbar-thumb { background-color: var(--border); border-radius: 10px; }
 
-.messageCol {
-  display: flex;
-  flex-direction: column;
-  max-width: 68%; 
-  gap: 4px; 
-}
-
-.bubbleMine, .bubbleTheirs {
-  max-width: 100% !important; 
-}
-
-.reactionsWrapperMine {
-  display: flex;
-  justify-content: flex-end;
-  margin-right: 6px;
-}
-
-.reactionsWrapperTheirs {
-  display: flex;
-  justify-content: flex-start;
-  margin-left: 6px;
-}
-
-/* Floating Button UI Layout Positioning */
-.scrollToBottomBtn {
-  position: absolute;
-  bottom: 24px;
-  right: 24px;
-  background-color: var(--accent, #0076ff);
-  color: #ffffff;
-  border: none;
-  padding: 10px 16px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-  z-index: 99;
-  transition: transform 0.15s ease, opacity 0.15s ease;
-}
-
-.scrollToBottomBtn:hover {
-  transform: translateY(-2px);
-}
-
-.scrollToBottomBtn:active {
-  transform: translateY(0);
-}
-
-.avatarSmall {
-  width: 28px;
-  height: 28px;
+/* ---- signature ring avatar ---- */
+.signatureAvatar {
   border-radius: 50%;
-  flex-shrink: 0;
-  overflow: hidden;
-  background-color: var(--code-bg);
+  padding: 2px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text-h);
-  align-self: flex-end;
-  margin-bottom: 2px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
 }
-.avatarSmall img { width: 100%; height: 100%; object-fit: cover; }
+.signatureAvatarInner {
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 0.72rem;
+}
+.signatureAvatarInner img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ---- grouping layout ---- */
+.group {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  animation: fadeUp 0.2s ease both;
+}
+.groupMine { flex-direction: row-reverse; }
+.groupAvatarSlot { width: 36px; flex-shrink: 0; padding-top: 2px; }
+.groupBody { display: flex; flex-direction: column; gap: 3px; max-width: 66%; }
+.groupMine .groupBody { align-items: flex-end; }
+.groupName { font-size: 0.74rem; font-weight: 700; margin-left: 4px; margin-bottom: 1px; }
+
+.msgRow { display: flex; }
+.groupMine .msgRow { justify-content: flex-end; }
+
+/* ---- bubble core ---- */
+.bubble {
+  position: relative;
+  padding: 9px 13px;
+  font-size: 14.5px;
+  line-height: 1.48;
+  word-break: break-word;
+  transition: filter 0.15s ease;
+}
+.bubbleTheirs {
+  background: var(--code-bg);
+  color: var(--text-h);
+  border: 1px solid var(--border);
+}
+.bubbleMine {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 75%, black));
+  color: #fff;
+}
+.bubbleDeleted { opacity: 0.6; font-style: italic; }
+
+/* asymmetric grouped shapes — the block reads as one continuous form */
+.bubbleTheirs.shape_solo { border-radius: 4px 18px 18px 18px; }
+.bubbleTheirs.shape_first { border-radius: 4px 18px 18px 18px; margin-bottom: -1px; }
+.bubbleTheirs.shape_mid   { border-radius: 6px 18px 18px 6px; margin: -1px 0; }
+.bubbleTheirs.shape_last  { border-radius: 6px 18px 18px 6px; margin-top: -1px; }
+
+.bubbleMine.shape_solo { border-radius: 18px 4px 18px 18px; }
+.bubbleMine.shape_first { border-radius: 18px 4px 18px 18px; margin-bottom: -1px; }
+.bubbleMine.shape_mid   { border-radius: 18px 6px 6px 18px; margin: -1px 0; }
+.bubbleMine.shape_last  { border-radius: 18px 6px 6px 18px; margin-top: -1px; }
+
+.deletedText { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.editedTag { font-size: 10px; opacity: 0.65; margin-left: 6px; font-style: italic; }
+
+/* hover timestamp — quietly appears rather than sitting there always */
+.hoverTime {
+  position: absolute;
+  bottom: -16px;
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--text);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  white-space: nowrap;
+}
+.bubbleTheirs .hoverTime { left: 2px; }
+.bubbleMine .hoverTime { right: 2px; }
+.bubble:hover .hoverTime { opacity: 0.7; }
+
+/* hover action toolbar */
+.hoverActions {
+  position: absolute;
+  top: -14px;
+  display: flex;
+  gap: 2px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  pointer-events: none;
+}
+.bubbleTheirs .hoverActions { right: 4px; }
+.bubbleMine .hoverActions { left: 4px; }
+.bubble:hover .hoverActions { opacity: 1; transform: translateY(0); pointer-events: auto; }
+.hoverActions button {
+  background: none; border: none; color: var(--text-h); cursor: pointer;
+  padding: 4px; border-radius: 5px; display: flex;
+}
+.hoverActions button:hover { background: var(--accent-bg); color: var(--accent); }
+
+/* reply quote block */
+.replyQuote {
+  display: flex; flex-direction: column;
+  border-left: 3px solid rgba(255,255,255,0.5);
+  padding: 3px 8px;
+  margin-bottom: 6px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.08);
+  font-size: 12px;
+}
+.bubbleTheirs .replyQuote { border-left-color: var(--accent); background: var(--accent-bg); }
+.replyQuoteName { font-weight: 700; opacity: 0.85; }
+.replyQuoteText { opacity: 0.75; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px; }
+
+/* inline edit */
+.editArea { display: flex; align-items: center; gap: 4px; }
+.editInput {
+  flex: 1; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 6px; padding: 5px 8px; color: inherit; font-size: 14px;
+}
+.editIconBtn { background: none; border: none; color: inherit; cursor: pointer; display: flex; padding: 4px; }
+
+/* ---- floating reaction chips, overlapping bottom edge ---- */
+.chipRow {
+  position: absolute;
+  bottom: -12px;
+  left: 10px;
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.bubbleMine .chipRow { left: auto; right: 10px; }
+
+.chipWrapper { position: relative; }
+.chip {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 12px;
+  padding: 2px 7px; font-size: 11px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+  transition: transform 0.12s ease;
+}
+.chip:hover { transform: translateY(-1px); }
+.chipMine { border-color: var(--accent); background: var(--accent-bg); }
+.chipCount { font-weight: 700; color: var(--text-h); }
+
+.chipTooltip {
+  position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,0.88); color: #fff; padding: 5px 9px; border-radius: 6px;
+  font-size: 11px; white-space: nowrap; opacity: 0; pointer-events: none;
+  transition: opacity 0.15s ease; z-index: 20;
+}
+.chipWrapper:hover .chipTooltip { opacity: 1; }
+
+.chipAddWrapper { position: relative; }
+.chipAddBtn {
+  width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--border);
+  background: var(--bg); color: var(--text); cursor: pointer; display: flex;
+  align-items: center; justify-content: center; opacity: 0.55;
+}
+.chipAddBtn:hover { opacity: 1; }
+.chipPicker {
+  position: absolute; bottom: 26px; left: 0;
+  background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px;
+  padding: 6px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;
+  box-shadow: var(--shadow); z-index: 30;
+}
+.chipPicker button { background: none; border: none; font-size: 16px; padding: 4px; cursor: pointer; border-radius: 5px; }
+.chipPicker button:hover { background: var(--border); }
+
+/* ---- banner / media / overlay (kept, lightly touched) ---- */
+.activeChannelBanner {
+  padding: 14px 24px; background-color: var(--code-bg); border-bottom: 1px solid var(--border);
+  font-size: 0.88rem; color: var(--text); display: flex; align-items: center; gap: 10px;
+}
+.content { white-space: pre-wrap; }
+.mediaWrapper { margin-top: 8px; border-radius: 12px; overflow: hidden; min-height: 140px; min-width: 220px; max-width: 260px; }
+.image, .videoThumbnail { width: 100%; max-width: 260px; height: 180px; object-fit: cover; display: block; cursor: zoom-in; }
+.videoThumbnailContainer { position: relative; cursor: pointer; }
+.playButtonOverlay {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.55); color: white; width: 44px; height: 44px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
+}
+.mediaPlaceholder { padding: 20px; font-size: 12px; color: var(--text); }
+
+.imageOverlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.88); backdrop-filter: blur(10px);
+  display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10000;
+  animation: overlayIn 0.2s ease-out both;
+}
+.overlayHeader { position: absolute; top: 20px; left: 20px; right: 20px; display: flex; justify-content: space-between; }
+.previewContent { width: 90%; height: 85%; display: flex; justify-content: center; align-items: center; animation: popIn 0.25s ease both; }
+.previewMedia { max-width: 100%; max-height: 100%; border-radius: 10px; }
+.closeButton, .downloadButton {
+  background: rgba(255,255,255,0.12); color: white; border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 20px; padding: 8px 16px; cursor: pointer;
+}
+
+.scrollToBottomBtn {
+  position: absolute; bottom: 24px; right: 24px; background: var(--accent); color: #fff;
+  border: none; padding: 9px 16px; border-radius: 20px; font-size: 13px; font-weight: 600;
+  cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+}
+
+.deletedText{ font-style: italic; opacity:.6; }
