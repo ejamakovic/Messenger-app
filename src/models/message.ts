@@ -11,4 +11,11 @@ export type Message = {
   timestamp: string
   attachments?: Attachment[]
   messageReactions?: MessageReaction[]
-} 
+  isDeleted?: boolean
+  editedAt?: string
+  replyTo?: {
+    id: number
+    senderUsername: string
+    content: string
+  }
+}

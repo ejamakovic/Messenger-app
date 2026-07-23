@@ -130,6 +130,11 @@
   padding: 4px; border-radius: 5px; display: flex;
 }
 .hoverActions button:hover { background: var(--accent-bg); color: var(--accent); }
+.hoverActions.hoverActionsOpen {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
 
 /* reply quote block */
 .replyQuote {
@@ -235,3 +240,41 @@
 }
 
 .deletedText{ font-style: italic; opacity:.6; }
+
+.messageMenu {
+  position: relative;
+}
+
+.menuDropdown {
+  position: absolute;
+  top: 26px;
+  right: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  min-width: 130px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+  animation: popIn 0.15s ease-out;
+}
+
+.menuDropdown button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: var(--text-h);
+  padding: 7px 12px;
+  font-size: 12.5px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.menuDropdown button:hover {
+  background: var(--accent-bg);
+  color: var(--accent);
+}

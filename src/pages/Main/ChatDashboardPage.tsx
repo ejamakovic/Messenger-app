@@ -62,11 +62,13 @@ export default function ChatDashboardPage() {
   };
 
   const handleEdit = async (messageId: number, content: string) => {
-      await editMessage(messageId, content);
+      const updated = await editMessage(messageId, content);
+      setChat((prev) => prev.map((m) => (m.id === messageId ? { ...m, ...updated } : m)));
   };
 
   const handleDelete = async (messageId: number) => {
-      await deleteMessage(messageId);
+      const updated = await deleteMessage(messageId);
+      setChat((prev) => prev.map((m) => (m.id === messageId ? { ...m, ...updated } : m)));
   };
 
   // ---------------------------------------------------
@@ -173,46 +175,54 @@ export default function ChatDashboardPage() {
   // ---------------------------------------------------
   // ----------------- SOCKET --------------------------
   // ---------------------------------------------------
-  // Only what's local to *this* chat window: appending live messages for the
-  // active conversation, and presence. Everything TopMenu needs (unread
-  // conversation badges, notifications) is handled by useInbox above.
+  // Only what's local to *this* chat window: appending live messages for the active conversation, and presence. 
+  // Everything TopMenu needs (unread conversation badges, notifications) is handled by useInbox above.
   useEffect(() => {
-    if (!user || !conversation) return;
+      if (!user || !conversation) return;
 
-    const handleMessage = (msg: Message) => {
-      if (!msg?.id || !msg?.conversationId) return;
-      if (msg.conversationId !== conversation.id) return;
+      const handleMessage = (msg: Message) => {
+        if (!msg?.id || !msg?.conversationId) return;
+        if (msg.conversationId !== conversation.id) return;
 
-      setChat((prev) => {
-        if (document.hasFocus() && isAtBottomRef.current) {
-          patchConversationLastSeen(conversation.id, user.id, msg.id)
-            .catch((err) => log.error("LAST_SEEN", "Failed to patch last seen on incoming message.", err));
-        }
-        return [...prev, msg];
-      });
-    };
+        setChat((prev) => {
+          if (document.hasFocus() && isAtBottomRef.current) {
+            patchConversationLastSeen(conversation.id, user.id, msg.id)
+              .catch((err) => log.error("LAST_SEEN", "Failed to patch last seen on incoming message.", err));
+          }
+          return [...prev, msg];
+        });
+      };
 
-    const handleUserJoin = (data: any) => {
-      if (!data?.user) return;
-      setOnlineUsers((prev) =>
-        prev.some((u) => u.username === data.user.username) ? prev : [...prev, data.user]
-      );
-    };
+      // keep the message list in sync when anyone edits/deletes,
+      // including this same client from another tab.
+      const handleMessageEdited = (msg: Message) => {
+        if (!msg?.id || msg.conversationId !== conversation.id) return;
+        setChat((prev) => prev.map((m) => (m.id === msg.id ? { ...m, ...msg } : m)));
+      };
 
-    const handleUserLeave = (data: any) => {
-      if (!data?.user) return;
-      setOnlineUsers((prev) => prev.filter((u) => u.username !== data.user.username));
-    };
+      const handleUserJoin = (data: any) => {
+        if (!data?.user) return;
+        setOnlineUsers((prev) =>
+          prev.some((u) => u.username === data.user.username) ? prev : [...prev, data.user]
+        );
+      };
 
-    subscribe("message", handleMessage);
-    subscribe("user_join", handleUserJoin);
-    subscribe("user_leave", handleUserLeave);
+      const handleUserLeave = (data: any) => {
+        if (!data?.user) return;
+        setOnlineUsers((prev) => prev.filter((u) => u.username !== data.user.username));
+      };
 
-    return () => {
-      unsubscribe("message", handleMessage);
-      unsubscribe("user_join", handleUserJoin);
-      unsubscribe("user_leave", handleUserLeave);
-    };
+      subscribe("message", handleMessage);
+      subscribe("message_edited", handleMessageEdited);
+      subscribe("user_join", handleUserJoin);
+      subscribe("user_leave", handleUserLeave);
+
+      return () => {
+        unsubscribe("message", handleMessage);
+        unsubscribe("message_edited", handleMessageEdited);
+        unsubscribe("user_join", handleUserJoin);
+        unsubscribe("user_leave", handleUserLeave);
+      };
   }, [user, conversation]);
 
   // ---------------------------------------------------

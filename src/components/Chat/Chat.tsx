@@ -188,23 +188,18 @@ export default function Chat({
   const [editDraft, setEditDraft] = useState("");
   const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
 
-  const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
       const close = (e: MouseEvent) => {
-          if (
-              menuRef.current &&
-              !menuRef.current.contains(e.target as Node)
-          ) {
+          const target = e.target as HTMLElement;
+          if (!target.closest(`.${styles.messageMenu}`)) {
               setMenuOpenId(null);
           }
       };
 
       document.addEventListener("mousedown", close);
-
-      return () =>
-          document.removeEventListener("mousedown", close);
-  }, []);
+      return () => document.removeEventListener("mousedown", close);
+  }, [styles.messageMenu])
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => { if (e.key === "Escape") { setPreview(null); setEditingId(null); } };
@@ -389,47 +384,43 @@ export default function Chat({
                           <span className={styles.hoverTime}>{formatTime(msg.timestamp)}</span>
 
                           {!isDeleted && (
-                            <div className={styles.hoverActions}>
-                              <button
-                                title="Odgovori"
-                                onClick={() => onReply?.(msg)}
-                              >
-                                <Reply size={13} />
-                              </button>
+                          <div
+                            className={`${styles.hoverActions} ${menuOpenId === msg.id ? styles.hoverActionsOpen : ""}`}
+                          >
+                            <button title="Odgovori" onClick={() => onReply?.(msg)}>
+                              <Reply size={13} />
+                            </button>
 
-                              {isMine && (
-                                <div ref={menuRef} className={styles.messageMenu} >
-                                  <button
-                                    className={styles.menuTrigger}
-                                    onClick={() =>
-                                      setMenuOpenId(menuOpenId === msg.id ? null : msg.id)
-                                    }
-                                  >
-                                    ⋯
-                                  </button>
+                            {isMine && (
+                              <div className={styles.messageMenu}>
+                                <button
+                                  className={styles.menuTrigger}
+                                  onClick={() => setMenuOpenId(menuOpenId === msg.id ? null : msg.id)}
+                                >
+                                  ⋯
+                                </button>
 
-                                  {menuOpenId === msg.id && (
-                                    <div className={styles.menuDropdown}>
-                                      <button onClick={() => startEdit(msg)}>
-                                        <Pencil size={13} />
-                                        Edit
-                                      </button>
-
-                                      <button
-                                        onClick={() => {
-                                          setMenuOpenId(null);
-                                          onDelete?.(msg.id);
-                                        }}
-                                      >
-                                        <Trash2 size={13} />
-                                        Delete
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          )}
+                                {menuOpenId === msg.id && (
+                                  <div className={styles.menuDropdown}>
+                                    <button onClick={() => startEdit(msg)}>
+                                      <Pencil size={13} />
+                                      Edit
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setMenuOpenId(null);
+                                        onDelete?.(msg.id);
+                                      }}
+                                    >
+                                      <Trash2 size={13} />
+                                      Delete
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
 
                           {!isDeleted && msg.id && (
                             <ReactionChips
